@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Happiness Hub — Earn Real Cashback</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+.products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(270px,1fr)); gap:20px; }
+.hero-stats { display:flex; justify-content:center; gap:48px; margin-top:40px; flex-wrap:wrap; }
+.hero-stat-num { font-family:var(--font-head); font-size:2.2rem; font-weight:800; color:var(--c-text); }
+.hero-stat-lbl { font-size:12px; color:var(--c-muted); margin-top:2px; }
+.floating-orb {
+  position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none; animation:float 6s ease-in-out infinite;
+}
+.orb1 { width:300px; height:300px; background:rgba(124,106,255,.15); top:-100px; left:-100px; animation-delay:0s; }
+.orb2 { width:250px; height:250px; background:rgba(0,229,160,.1); top:50px; right:-80px; animation-delay:2s; }
+.orb3 { width:200px; height:200px; background:rgba(255,79,163,.08); bottom:-50px; left:50%; animation-delay:4s; }
+.search-main { max-width:580px; margin:0 auto; position:relative; }
+.search-main input { width:100%; background:rgba(255,255,255,.05); border:1px solid var(--c-border); border-radius:50px; color:var(--c-text); font-size:16px; padding:16px 56px 16px 24px; outline:none; transition:.3s; font-family:var(--font-body); }
+.search-main input:focus { border-color:var(--c-primary); box-shadow:0 0 0 3px rgba(124,106,255,.15); }
+.search-main .s-icon { position:absolute; right:18px; top:50%; transform:translateY(-50%); font-size:22px; color:var(--c-dim); }
+.track-cta { background:linear-gradient(135deg,rgba(124,106,255,.1),rgba(0,229,160,.06)); border:1px solid var(--c-border); border-radius:var(--r-xl); padding:28px 32px; display:flex; align-items:center; justify-content:space-between; gap:20px; margin:48px 0; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <div class="logo-box">😊</div>
+      Happiness<span>Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html" class="active">Deals</a>
+      <a href="track.html">Track Order</a>
+      <a href="agent-login.html">Agent</a>
+    </div>
+    <a href="track.html" class="btn btn-ghost btn-sm hide-mob">📦 Track Order</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="floating-orb orb1"></div>
+  <div class="floating-orb orb2"></div>
+  <div class="floating-orb orb3"></div>
+  <div class="slide-up">
+    <div class="hero-pill">✨ Real Cashback — Real Money Back</div>
+    <h1 class="hero-title" id="heroTitle" style="margin-bottom:16px;">Earn Cashback On Every Purchase</h1>
+    <p style="font-size:1.1rem;max-width:500px;margin:0 auto 36px;" id="heroSub">Browse exclusive deals, buy through our links, get your money back.</p>
+    <div class="search-main">
+      <input type="search" id="searchInput" placeholder="Search products, categories..." autocomplete="off">
+      <span class="s-icon">🔍</span>
+    </div>
+    <div class="hero-stats">
+      <div class="text-center"><div class="hero-stat-num" id="statProducts">0</div><div class="hero-stat-lbl">Active Deals</div></div>
+      <div class="text-center"><div class="hero-stat-num">$5–$50</div><div class="hero-stat-lbl">Cashback Range</div></div>
+      <div class="text-center"><div class="hero-stat-num">24h</div><div class="hero-stat-lbl">Avg Processing</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<div class="container mb-24">
+  <div class="chips" id="chips">
+    <button class="chip active" data-cat="all">🛍️ All Deals</button>
+  </div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="container" style="padding-bottom:60px;">
+  <div class="flex-between mb-16">
+    <h2 style="font-size:1.3rem;" id="sectionLabel">🔥 Trending Deals</h2>
+    <span id="countLabel" class="text-muted"></span>
+  </div>
+  <div id="productsGrid" class="products-grid"></div>
+</div>
+
+<!-- TRACK CTA -->
+<div class="container">
+  <div class="track-cta">
+    <div>
+      <h3 style="margin-bottom:4px;">Already placed an order?</h3>
+      <p>Track your cashback status instantly using your WhatsApp or Order ID.</p>
+    </div>
+    <a href="track.html" class="btn btn-primary">📦 Track My Order</a>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>© <span id="yr"></span> Happiness Hub &nbsp;·&nbsp; <a href="track.html">Track Order</a> &nbsp;·&nbsp; <a href="agent-login.html">Agent Login</a> &nbsp;·&nbsp; <a href="admin/index.html">Admin</a></p>
+</footer>
+
+<script src="lib/hh.js"></script>
+<script>
+// Particles
+(function(){
+  const c=document.getElementById("particles"),ctx=c.getContext("2d");
+  let pts=[];
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  resize(); window.addEventListener("resize",resize);
+  for(let i=0;i<60;i++) pts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*2+1,a:Math.random()*.5+.1});
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    pts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>c.width) p.vx*=-1;
+      if(p.y<0||p.y>c.height) p.vy*=-1;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(124,106,255,${p.a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+document.getElementById("yr").textContent = new Date().getFullYear();
+HH.captureRef();
+
+let allProducts=[], activeCategory="all", searchTimer;
+
+(async()=>{
+  // Settings
+  const s = await HH.get("getSettings");
+  if(s.success){
+    const st=s.settings;
+    if(st.hero_title) document.getElementById("heroTitle").textContent=st.hero_title;
+    if(st.hero_subtitle) document.getElementById("heroSub").textContent=st.hero_subtitle;
+  }
+  loadProducts();
+})();
+
+async function loadProducts(cat="all", q=""){
+  document.getElementById("productsGrid").innerHTML=`<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:60px;gap:16px;"><div class="spinner"></div></div>`;
+  const p={};
+  if(cat&&cat!=="all") p.category=cat;
+  if(q) p.q=q;
+  const res = await HH.get("getProducts",p);
+  if(!res.success){ document.getElementById("productsGrid").innerHTML=`<div class="empty-state" style="grid-column:1/-1;"><div class="icon">😕</div><p>${HH.esc(res.error)}</p></div>`; return; }
+  allProducts=res.products||[];
+  document.getElementById("statProducts").textContent=res.total||0;
+  document.getElementById("countLabel").textContent=res.total?`${res.total} deal${res.total!==1?"s":""}`:""
+  document.getElementById("sectionLabel").textContent=q?`🔍 "${q}"`:(cat!=="all"?`🛍️ ${cat}`:`🔥 Trending Deals`);
+  renderChips(res.categories||[]);
+  renderProducts(allProducts);
+}
+
+function renderChips(cats){
+  const el=document.getElementById("chips");
+  const icons={Electronics:"💻",Fashion:"👗",Beauty:"💄",Home:"🏠",Sports:"⚽",Books:"📚",Toys:"🧸",Food:"🍕",Health:"💊"};
+  el.innerHTML=`<button class="chip ${activeCategory==="all"?"active":""}" data-cat="all" onclick="filterCat('all')">🛍️ All Deals</button>`
+    +cats.map(c=>`<button class="chip ${activeCategory===c?"active":""}" data-cat="${HH.esc(c)}" onclick="filterCat('${HH.esc(c)}')">${icons[c]||"🏷️"} ${HH.esc(c)}</button>`).join("");
+}
+
+function renderProducts(products){
+  const g=document.getElementById("productsGrid");
+  if(!products.length){ g.innerHTML=`<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🔎</div><h3>No deals found</h3><p>Try a different search or category</p></div>`; return; }
+  g.innerHTML=products.map((p,i)=>{
+    const featured=p.featured==="TRUE"||p.featured===true;
+    const fb=`https://placehold.co/480x270/13131f/7c6aff?text=${encodeURIComponent(p.title||"Product")}`;
+    return `<article class="product-card ${featured?"card-glow":""} slide-up" style="animation-delay:${Math.min(i*40,400)}ms" onclick="location.href='product.html?id=${HH.esc(p.product_id)}'" tabindex="0" onkeydown="if(event.key==='Enter')location.href='product.html?id=${HH.esc(p.product_id)}'">
+      ${p.badge_text?`<div class="product-badge">${HH.esc(p.badge_text)}</div>`:""}
+      <img class="product-card-img" src="${HH.esc(p.image_url)||fb}" alt="${HH.esc(p.title)}" loading="lazy" onerror="this.src='${fb}'">
+      <div class="product-card-body">
+        <div class="product-card-title">${HH.esc(p.title)}</div>
+        ${p.policy?`<div style="font-size:11px;color:var(--c-dim);margin-bottom:8px;">${HH.esc(p.policy)}</div>`:""}
+        <div class="flex-between">
+          <span class="cashback-pill">💸 ${HH.fmt$(p.cashback_amount)}</span>
+          <span style="font-size:12px;color:var(--c-muted);">${HH.esc(p.sold_by||"")}</span>
+        </div>
+        ${p.stock_status==="Limited"?`<div style="font-size:11px;color:#ffab00;margin-top:6px;">⚡ Limited Stock</div>`:""}
+        ${p.deadline?`<div style="font-size:11px;color:var(--c-dim);margin-top:4px;">⏳ Ends ${HH.esc(p.deadline)}</div>`:""}
+      </div>
+    </article>`;
+  }).join("");
+}
+
+function filterCat(cat){ activeCategory=cat; loadProducts(cat,document.getElementById("searchInput").value.trim()); }
+
+document.getElementById("searchInput").addEventListener("input",e=>{
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>loadProducts(activeCategory,e.target.value.trim()),350);
+});
+</script>
+</body>
+</html>

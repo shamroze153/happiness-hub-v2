@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Product — Happiness Hub</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+.p-layout { display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:start; margin-top:32px; }
+@media(max-width:768px){.p-layout{grid-template-columns:1fr;}}
+.p-img { border-radius:var(--r-xl); overflow:hidden; aspect-ratio:4/3; background:var(--c-surface); }
+.p-img img { width:100%; height:100%; object-fit:cover; }
+.cashback-box { background:linear-gradient(135deg,var(--c-primary),#9b8dff); border-radius:var(--r-lg); padding:20px 24px; display:flex; align-items:center; gap:16px; margin:16px 0; box-shadow:var(--glow); }
+.cb-amount { font-family:var(--font-head); font-size:2.2rem; font-weight:800; color:#fff; line-height:1; }
+.step-list { list-style:none; display:flex; flex-direction:column; gap:12px; }
+.step-item { display:flex; align-items:flex-start; gap:12px; }
+.step-num { width:28px; height:28px; border-radius:50%; background:rgba(124,106,255,.15); border:1px solid var(--c-border); color:var(--c-primary); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+.step-txt { font-size:14px; color:var(--c-muted); line-height:1.6; }
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="logo-box">😊</div>Happiness<span>Hub</span></a>
+    <div class="nav-links"><a href="index.html">← Deals</a><a href="track.html">Track</a></div>
+  </div>
+</nav>
+
+<div id="loading" class="flex-center" style="height:60vh;flex-direction:column;gap:16px;">
+  <div class="spinner"></div><p>Loading product...</p>
+</div>
+
+<div id="content" style="display:none;">
+<div class="container" style="padding-bottom:60px;">
+  <div style="font-size:13px;color:var(--c-muted);margin-bottom:8px;padding-top:24px;">
+    <a href="index.html" style="color:var(--c-muted);">← Back to Deals</a>
+  </div>
+  <div class="p-layout">
+    <div>
+      <div class="p-img"><img id="pImg" src="" alt=""></div>
+      <div class="card mt-16">
+        <h3 style="font-size:15px;margin-bottom:14px;">📋 How Cashback Works</h3>
+        <ol class="step-list" id="howItWorks">
+          <li class="step-item"><span class="step-num">1</span><span class="step-txt">Click "Buy This Product" and complete your purchase.</span></li>
+          <li class="step-item"><span class="step-num">2</span><span class="step-txt">Take a screenshot of your order confirmation.</span></li>
+          <li class="step-item"><span class="step-num">3</span><span class="step-txt">Submit your order ID + screenshot using the form.</span></li>
+          <li class="step-item"><span class="step-num">4</span><span class="step-txt">After delivery, we send your cashback automatically!</span></li>
+        </ol>
+      </div>
+    </div>
+    <div>
+      <div id="pBadge"></div>
+      <h1 id="pTitle" style="font-size:1.6rem;margin-bottom:12px;"></h1>
+      <div class="cashback-box">
+        <div style="font-size:36px;">💸</div>
+        <div><div class="cb-amount" id="pCashback"></div><div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px;">Cashback after delivery</div></div>
+      </div>
+      <div id="pMeta" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+      <div id="pDesc"></div>
+      <div id="pPolicy"></div>
+      <a id="buyBtn" href="#" target="_blank" class="btn btn-green w-full" style="margin:16px 0;font-size:16px;padding:16px;">🛒 Buy This Product</a>
+      <p style="font-size:12px;color:var(--c-muted);text-align:center;">Buy above, then fill the form below to claim cashback.</p>
+
+      <div class="card mt-16" id="formCard">
+        <h3 style="font-size:15px;margin-bottom:18px;">📝 Submit Your Order</h3>
+        <form id="orderForm" novalidate>
+          <div class="row-2">
+            <div class="form-group"><label class="form-label">Your Name *</label><input type="text" id="bName" class="form-control" placeholder="Full name" required></div>
+            <div class="form-group"><label class="form-label">WhatsApp *</label><input type="tel" id="bWA" class="form-control" placeholder="+1234567890" required></div>
+          </div>
+          <div class="form-group"><label class="form-label">Order ID *</label><input type="text" id="bOrderId" class="form-control" placeholder="Amazon order ID" required></div>
+          <div class="form-group">
+            <label class="form-label">Screenshot *</label>
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('sFile').click()">
+              <input type="file" id="sFile" accept="image/*" onchange="previewShot(event)">
+              <div id="uploadPH"><div style="font-size:28px;">📷</div><div style="font-size:13px;color:var(--c-muted);margin-top:6px;">Click to upload screenshot</div></div>
+              <img id="shotPreview" style="display:none;max-height:120px;margin:8px auto 0;border-radius:8px;">
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Notes</label><textarea id="bNotes" class="form-control" rows="2" placeholder="Optional notes..."></textarea></div>
+          <div id="formErr" class="err-box" style="display:none;"></div>
+          <button type="submit" class="btn btn-primary w-full" id="submitBtn" style="padding:14px;font-size:15px;">Submit & Claim Cashback</button>
+        </form>
+      </div>
+
+      <div id="successCard" style="display:none;" class="card mt-16 text-center">
+        <div style="font-size:56px;margin-bottom:16px;animation:float 3s ease-in-out infinite;">🎉</div>
+        <h3 style="margin-bottom:8px;">Order Submitted!</h3>
+        <p>Your Order ID: <strong id="confirmedId" style="color:var(--c-primary);"></strong></p>
+        <p style="margin-top:8px;">We'll process your cashback soon!</p>
+        <a href="track.html" class="btn btn-primary mt-16">📦 Track My Order</a>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="errPage" style="display:none;" class="text-center" style="padding:80px;">
+  <div style="font-size:48px;margin:60px auto 16px;">😕</div>
+  <h2>Product Not Found</h2>
+  <a href="index.html" class="btn btn-primary mt-16">← Browse Deals</a>
+</div>
+
+<script src="lib/hh.js"></script>
+<script>
+// Particles mini
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:40},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.3+.05}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+let product=null;
+const id=new URLSearchParams(location.search).get("id");
+HH.captureRef();
+
+(async()=>{
+  if(!id){showErr();return;}
+  const res=await HH.get("getProduct",{id});
+  document.getElementById("loading").style.display="none";
+  if(!res.success||!res.product){showErr();return;}
+  product=res.product;
+  render(product);
+})();
+
+function showErr(){document.getElementById("loading").style.display="none";document.getElementById("errPage").style.display="block";}
+
+function render(p){
+  document.title=`${p.title} — Happiness Hub`;
+  const fb=`https://placehold.co/600x450/13131f/7c6aff?text=${encodeURIComponent(p.title)}`;
+  document.getElementById("pImg").src=p.image_url||fb;
+  document.getElementById("pImg").onerror=function(){this.src=fb;};
+  document.getElementById("pImg").alt=p.title;
+  document.getElementById("pTitle").textContent=p.title;
+  document.getElementById("pCashback").textContent=HH.fmt$(p.cashback_amount);
+  if(p.badge_text) document.getElementById("pBadge").innerHTML=`<div class="product-badge" style="position:static;display:inline-block;margin-bottom:10px;">${HH.esc(p.badge_text)}</div>`;
+  const metas=[];
+  if(p.sold_by) metas.push(`<span class="badge badge-info">🏪 ${HH.esc(p.sold_by)}</span>`);
+  if(p.category) metas.push(`<span class="badge badge-warn">🏷️ ${HH.esc(p.category)}</span>`);
+  if(p.stock_status) metas.push(`<span class="badge badge-ok">📦 ${HH.esc(p.stock_status)}</span>`);
+  if(p.deadline) metas.push(`<span class="badge badge-warn">⏳ Ends ${HH.esc(p.deadline)}</span>`);
+  document.getElementById("pMeta").innerHTML=metas.join("");
+  if(p.description) document.getElementById("pDesc").innerHTML=`<p style="font-size:14px;line-height:1.8;margin-bottom:12px;">${HH.esc(p.description)}</p>`;
+  if(p.policy) document.getElementById("pPolicy").innerHTML=`<div style="background:rgba(124,106,255,.08);border:1px solid var(--c-border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px;font-size:13px;color:var(--c-muted);">📋 ${HH.esc(p.policy)}</div>`;
+  document.getElementById("buyBtn").href=p.link||"#";
+  document.getElementById("content").style.display="block";
+}
+
+document.getElementById("orderForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("submitBtn");
+  const err=document.getElementById("formErr");
+  err.style.display="none";
+  const name=document.getElementById("bName").value.trim();
+  const wa=document.getElementById("bWA").value.trim();
+  const oid=document.getElementById("bOrderId").value.trim();
+  const notes=document.getElementById("bNotes").value.trim();
+  const file=document.getElementById("sFile").files[0];
+  if(!name||!wa||!oid){err.textContent="Please fill in all required fields.";err.style.display="block";return;}
+  if(!file){err.textContent="Please upload your order screenshot.";err.style.display="block";return;}
+  btn.disabled=true;btn.textContent="Uploading screenshot...";
+  let screenshot_url="";
+  try{ screenshot_url=await HH.uploadFile(file); }
+  catch(e2){err.textContent="Upload failed: "+e2.message;err.style.display="block";btn.disabled=false;btn.textContent="Submit & Claim Cashback";return;}
+  btn.textContent="Saving order...";
+  const res=await HH.get("submitOrder",{buyer_name:name,buyer_whatsapp:wa,product_id:product.product_id,amazon_order_id:oid,screenshot_url,notes,agent_id:HH.getRef()});
+  btn.disabled=false;btn.textContent="Submit & Claim Cashback";
+  if(res.success){
+    document.getElementById("formCard").style.display="none";
+    document.getElementById("successCard").style.display="block";
+    document.getElementById("confirmedId").textContent=res.order_id;
+    document.getElementById("successCard").scrollIntoView({behavior:"smooth",block:"center"});
+  } else {
+    err.textContent=res.error||"Submission failed.";err.style.display="block";
+  }
+});
+
+function previewShot(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{document.getElementById("shotPreview").src=r.result;document.getElementById("shotPreview").style.display="block";document.getElementById("uploadPH").style.display="none";};
+  r.readAsDataURL(f);
+}
+
+const uz=document.getElementById("uploadZone");
+uz.addEventListener("dragover",e=>{e.preventDefault();uz.classList.add("drag-over");});
+uz.addEventListener("dragleave",()=>uz.classList.remove("drag-over"));
+uz.addEventListener("drop",e=>{e.preventDefault();uz.classList.remove("drag-over");const f=e.dataTransfer.files[0];if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById("sFile").files=dt.files;previewShot({target:{files:[f]}});}});
+</script>
+</body>
+</html>

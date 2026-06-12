@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Agent Dashboard — Happiness Hub</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+.page{max-width:1100px;margin:0 auto;padding:28px 24px;}
+.ref-box{background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--r-lg);padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;}
+.ref-url{font-family:monospace;font-size:13px;color:var(--c-primary);flex:1;background:rgba(124,106,255,.08);padding:8px 14px;border-radius:var(--r-sm);word-break:break-all;}
+.upload-zone{border:2px dashed var(--c-border);border-radius:var(--r-md);padding:18px;text-align:center;cursor:pointer;transition:.2s;}
+.upload-zone:hover{border-color:var(--c-primary);}
+.upload-zone input{display:none;}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="logo-box">😊</div>Happiness<span>Hub</span></a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="agentNameNav" style="font-size:14px;color:var(--c-muted);"></span>
+      <button onclick="logout()" class="btn btn-ghost btn-sm">Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="flex-between mb-24">
+    <div><h2 style="margin-bottom:4px;">👋 Welcome, <span id="agentName">Agent</span></h2><p>Manage your orders and commissions</p></div>
+    <button onclick="showTab('submit')" class="btn btn-primary">➕ Submit New Order</button>
+  </div>
+
+  <!-- Referral -->
+  <div class="ref-box">
+    <div style="min-width:0;">
+      <div style="font-size:11px;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">🔗 Your Referral Link</div>
+      <div class="ref-url" id="refUrl">Loading...</div>
+    </div>
+    <button onclick="copyRef()" class="btn btn-ghost btn-sm" id="copyBtn">📋 Copy</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4 mb-24">
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-val" id="sTotal">0</div><div class="stat-lbl">Total Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-val" id="sPending">0</div><div class="stat-lbl">Pending</div></div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-val" id="sDone">0</div><div class="stat-lbl">Completed</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-val" id="sCash">$0</div><div class="stat-lbl">Total Cashback</div></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tabOrders" onclick="showTab('orders')">📋 My Orders</button>
+    <button class="tab" id="tabSubmit" onclick="showTab('submit')">➕ Submit Order</button>
+  </div>
+
+  <!-- Orders Panel -->
+  <div id="panelOrders">
+    <div class="flex-between mb-16" style="gap:12px;">
+      <div class="search-wrap" style="flex:1;min-width:180px;"><span class="search-icon">🔍</span><input type="text" class="form-control" id="oSearch" placeholder="Search orders..." oninput="filterOrders()"></div>
+      <select class="form-control" id="oStatus" onchange="filterOrders()" style="max-width:170px;">
+        <option value="">All Statuses</option>
+        <option>Pending</option><option>Ordered</option><option>Delivered</option>
+        <option>Cashback Sent</option><option>Rejected</option><option>Need More Info</option><option>PayPal Issue</option>
+      </select>
+    </div>
+    <div class="tbl-wrap" id="ordersTbl"><div class="flex-center" style="padding:60px;"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- Submit Panel -->
+  <div id="panelSubmit" style="display:none;">
+    <div class="card" style="max-width:640px;">
+      <h3 style="margin-bottom:20px;">📝 Submit Order on Buyer's Behalf</h3>
+      <form id="orderForm" novalidate>
+        <div class="row-2">
+          <div class="form-group"><label class="form-label">Buyer Name *</label><input type="text" id="bName" class="form-control" placeholder="Full name" required></div>
+          <div class="form-group"><label class="form-label">Buyer WhatsApp *</label><input type="tel" id="bWA" class="form-control" placeholder="+1234567890" required></div>
+        </div>
+        <div class="form-group"><label class="form-label">Select Product *</label><select id="bProduct" class="form-control" required><option value="">Loading...</option></select></div>
+        <div class="form-group"><label class="form-label">Order ID *</label><input type="text" id="bOId" class="form-control" placeholder="Amazon order ID" required></div>
+        <div class="form-group">
+          <label class="form-label">Screenshot *</label>
+          <div class="upload-zone" onclick="document.getElementById('sFile').click()">
+            <input type="file" id="sFile" accept="image/*" onchange="previewShot(event)">
+            <div id="sPH"><div style="font-size:24px;">📷</div><div style="font-size:13px;color:var(--c-muted);margin-top:4px;">Click to upload</div></div>
+            <img id="sPreview" style="display:none;max-height:80px;margin:8px auto 0;border-radius:6px;">
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes</label><textarea id="bNotes" class="form-control" rows="2" placeholder="Optional..."></textarea></div>
+        <div id="formErr" class="err-box" style="display:none;"></div>
+        <div style="display:flex;gap:12px;">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Submit Order</button>
+          <button type="button" onclick="showTab('orders')" class="btn btn-ghost">Cancel</button>
+        </div>
+      </form>
+      <div id="submitOK" style="display:none;text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+        <h3 style="margin-bottom:6px;">Order Submitted!</h3>
+        <p>Order ID: <strong id="newOId" style="color:var(--c-primary);"></strong></p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+          <button onclick="resetForm()" class="btn btn-primary">Submit Another</button>
+          <button onclick="showTab('orders')" class="btn btn-ghost">View Orders</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="lib/hh.js"></script>
+<script>
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:30},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.2+.05}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+let session=null, allOrders=[];
+
+document.addEventListener("DOMContentLoaded",async()=>{
+  session=HH.requireAuth("agent","agent-login.html");
+  if(!session)return;
+  document.getElementById("agentName").textContent=session.name||session.actor_id;
+  document.getElementById("agentNameNav").textContent=session.name||session.actor_id;
+  document.getElementById("refUrl").textContent=`${location.origin}${location.pathname.replace("agent-dashboard.html","")}?ref=${session.actor_id}`;
+  await Promise.all([loadOrders(),loadProducts()]);
+});
+
+function showTab(t){
+  document.getElementById("panelOrders").style.display=t==="orders"?"block":"none";
+  document.getElementById("panelSubmit").style.display=t==="submit"?"block":"none";
+  document.getElementById("tabOrders").classList.toggle("active",t==="orders");
+  document.getElementById("tabSubmit").classList.toggle("active",t==="submit");
+}
+
+function copyRef(){
+  navigator.clipboard.writeText(document.getElementById("refUrl").textContent).then(()=>{
+    const b=document.getElementById("copyBtn");b.textContent="✅ Copied!";setTimeout(()=>b.textContent="📋 Copy",2000);
+  });
+}
+
+async function loadOrders(){
+  const auth=HH.getAuthBody("agent");
+  const res=await HH.get("getAgentOrders",auth);
+  if(!res.success){document.getElementById("ordersTbl").innerHTML=`<div class="empty-state"><p>${HH.esc(res.error)}</p></div>`;return;}
+  allOrders=res.orders||[];
+  const s=res.stats||{};
+  document.getElementById("sTotal").textContent=s.total||0;
+  document.getElementById("sPending").textContent=s.pending||0;
+  document.getElementById("sDone").textContent=s.completed||0;
+  document.getElementById("sCash").textContent=HH.fmt$(s.total_cashback||0);
+  renderOrders(allOrders);
+}
+
+function filterOrders(){
+  const q=(document.getElementById("oSearch").value||"").toLowerCase();
+  const st=document.getElementById("oStatus").value;
+  let f=allOrders;
+  if(st)f=f.filter(o=>o.status===st);
+  if(q)f=f.filter(o=>(o.buyer_name||"").toLowerCase().includes(q)||(o.product_title||"").toLowerCase().includes(q)||(o.order_id||"").toLowerCase().includes(q)||(o.amazon_order_id||"").toLowerCase().includes(q));
+  renderOrders(f);
+}
+
+function renderOrders(orders){
+  if(!orders.length){document.getElementById("ordersTbl").innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>No orders found.</p></div>`;return;}
+  document.getElementById("ordersTbl").innerHTML=`<table><thead><tr><th>Buyer</th><th>Product</th><th>Order ID</th><th>Cashback</th><th>Status</th><th>Time</th></tr></thead><tbody>${orders.map(o=>`<tr><td><div style="font-weight:500;">${HH.esc(o.buyer_name)}</div><div style="font-size:11px;color:var(--c-muted);">${HH.esc(o.buyer_whatsapp)}</div></td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${HH.esc(o.product_title)}</td><td style="font-family:monospace;font-size:12px;color:var(--c-muted);">${HH.esc(o.amazon_order_id)}</td><td style="color:var(--c-primary);font-weight:600;">${HH.fmt$(o.cashback_amount)}</td><td>${HH.statusBadge(o.status)}</td><td style="font-size:12px;color:var(--c-muted);">${HH.timeAgo(o.submitted_at)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+async function loadProducts(){
+  const res=await HH.get("getProducts");
+  if(res.success){
+    const sel=document.getElementById("bProduct");
+    sel.innerHTML=`<option value="">— Select product —</option>`+res.products.map(p=>`<option value="${HH.esc(p.product_id)}">${HH.esc(p.title)} (${HH.fmt$(p.cashback_amount)})</option>`).join("");
+  }
+}
+
+document.getElementById("orderForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("submitBtn"),err=document.getElementById("formErr");
+  err.style.display="none";
+  const name=document.getElementById("bName").value.trim();
+  const wa=document.getElementById("bWA").value.trim();
+  const pid=document.getElementById("bProduct").value;
+  const oid=document.getElementById("bOId").value.trim();
+  const notes=document.getElementById("bNotes").value.trim();
+  const file=document.getElementById("sFile").files[0];
+  if(!name||!wa||!pid||!oid){err.textContent="Fill in all required fields.";err.style.display="block";return;}
+  if(!file){err.textContent="Upload the order screenshot.";err.style.display="block";return;}
+  btn.disabled=true;btn.textContent="Uploading...";
+  let screenshot_url="";
+  try{screenshot_url=await HH.uploadFile(file);}
+  catch(e2){err.textContent="Upload failed: "+e2.message;err.style.display="block";btn.disabled=false;btn.textContent="Submit Order";return;}
+  btn.textContent="Saving...";
+  const auth=HH.getAuthBody("agent");
+  const res=await HH.get("submitOrder",{...auth,buyer_name:name,buyer_whatsapp:wa,product_id:pid,amazon_order_id:oid,screenshot_url,notes});
+  btn.disabled=false;btn.textContent="Submit Order";
+  if(res.success){document.getElementById("orderForm").style.display="none";document.getElementById("submitOK").style.display="block";document.getElementById("newOId").textContent=res.order_id;loadOrders();}
+  else{err.textContent=res.error||"Failed.";err.style.display="block";}
+});
+
+function previewShot(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{document.getElementById("sPreview").src=r.result;document.getElementById("sPreview").style.display="block";document.getElementById("sPH").style.display="none";};r.readAsDataURL(f);}
+
+function resetForm(){document.getElementById("orderForm").reset();document.getElementById("orderForm").style.display="block";document.getElementById("submitOK").style.display="none";document.getElementById("sPreview").style.display="none";document.getElementById("sPH").style.display="block";}
+
+function logout(){HH.clearSession("agent");location.href="agent-login.html";}
+</script>
+</body>
+</html>

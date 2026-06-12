@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Agent Login — Happiness Hub</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="card slide-up" style="width:100%;max-width:400px;text-align:center;">
+  <div style="width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,var(--c-primary),var(--c-pink));display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;box-shadow:var(--glow);">👥</div>
+  <h2 style="margin-bottom:4px;">Agent Login</h2>
+  <p style="margin-bottom:28px;">Sign in to your agent dashboard</p>
+  <form id="loginForm">
+    <div class="form-group text-left"><label class="form-label">Agent ID</label><input type="text" id="aId" class="form-control" placeholder="e.g. agent01" autocomplete="username"></div>
+    <div class="form-group text-left"><label class="form-label">Password</label><input type="password" id="aPw" class="form-control" placeholder="Your password" autocomplete="current-password"></div>
+    <div id="err" class="err-box" style="display:none;"></div>
+    <button type="submit" class="btn btn-primary w-full" id="btn" style="padding:14px;">Sign In</button>
+  </form>
+  <div style="margin-top:16px;"><a href="index.html" style="font-size:13px;color:var(--c-muted);">← Back to Deals</a></div>
+</div>
+<script src="lib/hh.js"></script>
+<script>
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:30},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.3+.05}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+if(HH.getSession("agent")) location.href="agent-dashboard.html";
+
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("btn"),err=document.getElementById("err");
+  err.style.display="none";
+  const agent_id=document.getElementById("aId").value.trim();
+  const password=document.getElementById("aPw").value;
+  if(!agent_id||!password){err.textContent="Enter your Agent ID and password.";err.style.display="block";return;}
+  btn.disabled=true;btn.textContent="Signing in...";
+  const res=await HH.get("agentLogin",{agent_id,password});
+  btn.disabled=false;btn.textContent="Sign In";
+  if(res.success){
+    HH.setSession("agent",{token:res.token,actor_id:res.agent.agent_id,actor_type:"agent",name:res.agent.name,commission_rate:res.agent.commission_rate});
+    location.href="agent-dashboard.html";
+  } else {
+    err.textContent=res.error||"Login failed.";err.style.display="block";
+  }
+});
+</script>
+</body>
+</html>

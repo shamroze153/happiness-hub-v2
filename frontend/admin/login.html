@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin — Happiness Hub</title>
+<link rel="stylesheet" href="../styles/main.css">
+<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<div class="card slide-up" style="width:100%;max-width:380px;text-align:center;">
+  <div style="width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--c-primary),var(--c-pink));display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 20px;box-shadow:var(--glow);animation:float 4s ease-in-out infinite;">⚙️</div>
+  <h2 style="margin-bottom:8px;">Happiness Hub</h2>
+  <p style="margin-bottom:28px;">Admin Dashboard</p>
+  <button onclick="enter()" class="btn btn-primary w-full" style="font-size:16px;padding:16px;" id="btn">Enter Dashboard →</button>
+  <div style="margin-top:16px;"><a href="../index.html" style="font-size:13px;color:var(--c-muted);">← Back to Site</a></div>
+</div>
+<script src="../lib/hh.js"></script>
+<script>
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:30},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.3+.05}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+if(HH.getSession("admin")) location.href="index.html";
+
+function enter(){
+  document.getElementById("btn").textContent="Loading...";
+  HH.setSession("admin",{token:"admin_direct",actor_id:"admin",actor_type:"admin"});
+  location.href="index.html";
+}
+</script>
+</body>
+</html>
