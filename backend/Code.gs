@@ -14,7 +14,14 @@ function doPost(e) { return handleRequest(e); }
 
 function handleRequest(e) {
   try {
-    const p = (e && e.parameter) || {};
+    let p = (e && e.parameter) || {};
+    // Support POST body (text/plain JSON) — used for large file uploads
+    if (e && e.postData && e.postData.contents) {
+      try {
+        const body = JSON.parse(e.postData.contents);
+        p = Object.assign({}, p, body);
+      } catch (_) {}
+    }
     const action = p.action;
     if (!action) return jsonResponse({ success: false, error: "No action specified" });
     const result = route(action, p, e);
@@ -35,6 +42,7 @@ function route(action, p, e) {
     case "getProducts":       return getProducts(p);
     case "getProduct":        return getProduct(p.id);
     case "trackOrder":        return trackOrder(p);
+    case "getBuyerOrders":     return getBuyerOrders(p);
     case "getSettings":       return getSettings();
     case "agentLogin":        return agentLogin(p);
     case "getAgentOrders":    return getAgentOrders(p);
@@ -185,6 +193,37 @@ function getSettings() {
   const settings = {};
   rows.forEach(r => { if (r.key) settings[r.key] = r.value; });
   return { success: true, settings };
+}
+
+// ── BUYER ORDER HISTORY (by WhatsApp number) ──────────────────
+
+function getBuyerOrders(params) {
+  const whatsapp = params.whatsapp;
+  if (!whatsapp) return { success: false, error: "WhatsApp number required" };
+  const clean = whatsapp.replace(/\D/g, "");
+  if (clean.length < 6) return { success: false, error: "Enter a valid WhatsApp number" };
+  const orders = sheetToObjects(getSheet("Orders"));
+  let results = orders.filter(o => String(o.buyer_whatsapp).replace(/\D/g, "") === clean);
+  results.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+  results = results.map(o => ({
+    order_id: o.order_id,
+    product_title: o.product_title,
+    amazon_order_id: o.amazon_order_id,
+    status: o.status,
+    cashback_amount: o.cashback_amount,
+    cashback_proof_url: o.cashback_proof_url,
+    screenshot_url: o.screenshot_url,
+    seller_notes: o.seller_notes,
+    submitted_at: o.submitted_at,
+    updated_at: o.updated_at,
+  }));
+  const stats = {
+    total: results.length,
+    pending: results.filter(o => o.status === "Pending" || o.status === "Ordered" || o.status === "Delivered").length,
+    cashback_sent: results.filter(o => o.status === "Cashback Sent").length,
+    total_cashback: results.filter(o => o.status === "Cashback Sent").reduce((sum, o) => sum + (parseFloat(o.cashback_amount) || 0), 0),
+  };
+  return { success: true, orders: results, stats, whatsapp: clean };
 }
 
 // ── AGENT ───────────────────────────────────────────────────
