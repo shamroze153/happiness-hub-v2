@@ -1,6 +1,7 @@
 /**
  * Happiness Hub v2 — Core Library
- * All API calls use GET to avoid CORS issues with Google Apps Script
+ * Reads use GET. File uploads use a "simple" POST (text/plain) to avoid
+ * both CORS preflight AND GET url-length limits for large images.
  */
 const HH = (() => {
   const API = "https://script.google.com/macros/s/AKfycbwR31kKnILOJ6oAgNb5ePqYfNIfbMHp4W4nFrIHYn5KWxEgHMacORc-khRGLwJFeF3j/exec";
@@ -21,7 +22,22 @@ const HH = (() => {
     }
   }
 
-  // Alias — everything is GET
+  // POST with text/plain body — "simple request", no CORS preflight,
+  // and no URL length limit (used for file uploads with large base64 data)
+  async function callPost(action, params = {}) {
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action, ...params }),
+      });
+      return await res.json();
+    } catch (e) {
+      console.error(e);
+      return { success: false, error: "Connection failed. Check your internet." };
+    }
+  }
+
   const get  = (action, p) => call(action, p);
   const post = (action, p) => call(action, p);
 
@@ -72,7 +88,7 @@ const HH = (() => {
     setTimeout(()=>{ t.style.opacity="0"; t.style.transition=".3s"; setTimeout(()=>t.remove(),300); }, 3500);
   }
 
-  // File upload
+  // File upload — via POST (handles large screenshots)
   function fileToB64(file) {
     return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(",")[1]); r.onerror=rej; r.readAsDataURL(file); });
   }
@@ -80,11 +96,11 @@ const HH = (() => {
     if (!file) return "";
     if (file.size > 5*1024*1024) throw new Error("File too large (max 5MB)");
     const base64data = await fileToB64(file);
-    const r = await call("uploadFile", { filename: file.name, base64data, mimetype: file.type });
+    const r = await callPost("uploadFile", { filename: file.name, base64data, mimetype: file.type });
     if (!r.success) throw new Error(r.error||"Upload failed");
     return r.url;
   }
 
-  return { call, get, post, getSession, setSession, clearSession, getAuthBody, requireAuth,
+  return { call, get, post, callPost, getSession, setSession, clearSession, getAuthBody, requireAuth,
            captureRef, getRef, fmt$, timeAgo, statusBadge, esc, toast, fileToB64, uploadFile };
 })();
