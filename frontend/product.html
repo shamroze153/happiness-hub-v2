@@ -16,6 +16,34 @@
 .step-item { display:flex; align-items:flex-start; gap:12px; }
 .step-num { width:28px; height:28px; border-radius:50%; background:rgba(124,106,255,.15); border:1px solid var(--c-border); color:var(--c-primary); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
 .step-txt { font-size:14px; color:var(--c-muted); line-height:1.6; }
+
+/* Mini wizard */
+.wiz-track { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:22px; }
+.wiz-dot { width:30px; height:30px; border-radius:50%; background:var(--c-surface); border:2px solid var(--c-dim); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--c-muted); transition:.3s; }
+.wiz-dot.active { border-color:var(--c-primary); background:rgba(124,106,255,.15); color:var(--c-primary); box-shadow:0 0 12px rgba(124,106,255,.35); }
+.wiz-dot.done { border-color:var(--c-accent); background:var(--c-accent); color:#000; }
+.wiz-line { width:28px; height:2px; background:var(--c-dim); }
+.wiz-line.done { background:var(--c-accent); }
+.wiz-step { display:none; animation:fadeIn .35s ease; }
+.wiz-step.active { display:block; }
+
+.pm-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+@media(max-width:480px){.pm-grid{grid-template-columns:repeat(2,1fr);}}
+.pm-option {
+  border:1px solid var(--c-border2); border-radius:var(--r-md); padding:14px 8px;
+  text-align:center; cursor:pointer; transition:.2s; background:rgba(255,255,255,.02);
+}
+.pm-option:hover { border-color:var(--c-border); }
+.pm-option.selected { border-color:var(--c-primary); background:rgba(124,106,255,.1); box-shadow:0 0 16px rgba(124,106,255,.15); }
+.pm-icon { font-size:24px; margin-bottom:6px; }
+.pm-label { font-size:12px; font-weight:600; color:var(--c-text); }
+
+.success-hero { text-align:center; padding:10px 0 20px; }
+.success-icon { font-size:64px; animation:float 3s ease-in-out infinite; margin-bottom:8px; }
+.next-step-card {
+  background:rgba(124,106,255,.06); border:1px solid var(--c-border);
+  border-radius:var(--r-md); padding:16px; text-align:left; margin-top:16px;
+}
 </style>
 </head>
 <body>
@@ -23,7 +51,7 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo"><div class="logo-box">😊</div>Happiness<span>Hub</span></a>
-    <div class="nav-links"><a href="index.html">← Deals</a><a href="track.html">Track</a></div>
+    <div class="nav-links"><a href="index.html">← Deals</a><a href="my-orders.html">My Orders</a></div>
   </div>
 </nav>
 
@@ -41,11 +69,11 @@
       <div class="p-img"><img id="pImg" src="" alt=""></div>
       <div class="card mt-16">
         <h3 style="font-size:15px;margin-bottom:14px;">📋 How Cashback Works</h3>
-        <ol class="step-list" id="howItWorks">
+        <ol class="step-list">
           <li class="step-item"><span class="step-num">1</span><span class="step-txt">Click "Buy This Product" and complete your purchase.</span></li>
-          <li class="step-item"><span class="step-num">2</span><span class="step-txt">Take a screenshot of your order confirmation.</span></li>
-          <li class="step-item"><span class="step-num">3</span><span class="step-txt">Submit your order ID + screenshot using the form.</span></li>
-          <li class="step-item"><span class="step-num">4</span><span class="step-txt">After delivery, we send your cashback automatically!</span></li>
+          <li class="step-item"><span class="step-num">2</span><span class="step-txt">Submit your order ID, payment method & screenshot below.</span></li>
+          <li class="step-item"><span class="step-num">3</span><span class="step-txt">Once delivered, upload a delivery screenshot in "My Orders".</span></li>
+          <li class="step-item"><span class="step-num">4</span><span class="step-txt">We send your cashback to your payment method automatically!</span></li>
         </ol>
       </div>
     </div>
@@ -63,33 +91,81 @@
       <p style="font-size:12px;color:var(--c-muted);text-align:center;">Buy above, then fill the form below to claim cashback.</p>
 
       <div class="card mt-16" id="formCard">
-        <h3 style="font-size:15px;margin-bottom:18px;">📝 Submit Your Order</h3>
+        <h3 style="font-size:15px;margin-bottom:18px;">📝 Claim Your Cashback</h3>
+
+        <!-- Wizard progress -->
+        <div class="wiz-track">
+          <div class="wiz-dot active" id="wd1">1</div>
+          <div class="wiz-line" id="wl1"></div>
+          <div class="wiz-dot" id="wd2">2</div>
+          <div class="wiz-line" id="wl2"></div>
+          <div class="wiz-dot" id="wd3">3</div>
+        </div>
+
         <form id="orderForm" novalidate>
-          <div class="row-2">
-            <div class="form-group"><label class="form-label">Your Name *</label><input type="text" id="bName" class="form-control" placeholder="Full name" required></div>
-            <div class="form-group"><label class="form-label">WhatsApp *</label><input type="tel" id="bWA" class="form-control" placeholder="+1234567890" required></div>
+          <!-- STEP 1: Order Info -->
+          <div class="wiz-step active" id="step1">
+            <div class="row-2">
+              <div class="form-group"><label class="form-label">Your Name *</label><input type="text" id="bName" class="form-control" placeholder="Full name" required></div>
+              <div class="form-group"><label class="form-label">WhatsApp *</label><input type="tel" id="bWA" class="form-control" placeholder="+1234567890" required></div>
+            </div>
+            <div class="form-group"><label class="form-label">Order ID *</label><input type="text" id="bOrderId" class="form-control" placeholder="Amazon order ID" required></div>
+            <button type="button" onclick="goStep(2)" class="btn btn-primary w-full" style="padding:14px;">Continue →</button>
           </div>
-          <div class="form-group"><label class="form-label">Order ID *</label><input type="text" id="bOrderId" class="form-control" placeholder="Amazon order ID" required></div>
-          <div class="form-group">
-            <label class="form-label">Screenshot *</label>
-            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('sFile').click()">
-              <input type="file" id="sFile" accept="image/*" onchange="previewShot(event)">
-              <div id="uploadPH"><div style="font-size:28px;">📷</div><div style="font-size:13px;color:var(--c-muted);margin-top:6px;">Click to upload screenshot</div></div>
-              <img id="shotPreview" style="display:none;max-height:120px;margin:8px auto 0;border-radius:8px;">
+
+          <!-- STEP 2: Payment Method -->
+          <div class="wiz-step" id="step2">
+            <label class="form-label" style="margin-bottom:10px;display:block;">How should we send your cashback? *</label>
+            <div class="pm-grid mb-16" id="pmGrid">
+              <div class="pm-option" data-pm="Zelle" onclick="selectPM('Zelle')"><div class="pm-icon">🏦</div><div class="pm-label">Zelle</div></div>
+              <div class="pm-option" data-pm="CashApp" onclick="selectPM('CashApp')"><div class="pm-icon">💵</div><div class="pm-label">CashApp</div></div>
+              <div class="pm-option" data-pm="Venmo" onclick="selectPM('Venmo')"><div class="pm-icon">📲</div><div class="pm-label">Venmo</div></div>
+              <div class="pm-option" data-pm="PayPal" onclick="selectPM('PayPal')"><div class="pm-icon">🅿️</div><div class="pm-label">PayPal</div></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="pmIdLabel">Account Details *</label>
+              <input type="text" id="bPaymentId" class="form-control" placeholder="Select a payment method first" disabled>
+            </div>
+            <div style="display:flex;gap:12px;">
+              <button type="button" onclick="goStep(1)" class="btn btn-ghost">← Back</button>
+              <button type="button" onclick="goStep(3)" class="btn btn-primary" style="flex:1;padding:14px;">Continue →</button>
             </div>
           </div>
-          <div class="form-group"><label class="form-label">Notes</label><textarea id="bNotes" class="form-control" rows="2" placeholder="Optional notes..."></textarea></div>
-          <div id="formErr" class="err-box" style="display:none;"></div>
-          <button type="submit" class="btn btn-primary w-full" id="submitBtn" style="padding:14px;font-size:15px;">Submit & Claim Cashback</button>
+
+          <!-- STEP 3: Screenshot + Submit -->
+          <div class="wiz-step" id="step3">
+            <div class="form-group">
+              <label class="form-label">Order Screenshot *</label>
+              <div class="upload-zone" id="uploadZone" onclick="document.getElementById('sFile').click()">
+                <input type="file" id="sFile" accept="image/*" onchange="previewShot(event)">
+                <div id="uploadPH"><div style="font-size:28px;">📷</div><div style="font-size:13px;color:var(--c-muted);margin-top:6px;">Click to upload order confirmation screenshot</div></div>
+                <img id="shotPreview" style="display:none;max-height:120px;margin:8px auto 0;border-radius:8px;">
+              </div>
+            </div>
+            <div class="form-group"><label class="form-label">Notes</label><textarea id="bNotes" class="form-control" rows="2" placeholder="Optional notes..."></textarea></div>
+            <div id="formErr" class="err-box" style="display:none;"></div>
+            <div style="display:flex;gap:12px;">
+              <button type="button" onclick="goStep(2)" class="btn btn-ghost">← Back</button>
+              <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1;padding:14px;">Submit & Claim Cashback 🚀</button>
+            </div>
+          </div>
         </form>
       </div>
 
-      <div id="successCard" style="display:none;" class="card mt-16 text-center">
-        <div style="font-size:56px;margin-bottom:16px;animation:float 3s ease-in-out infinite;">🎉</div>
-        <h3 style="margin-bottom:8px;">Order Submitted!</h3>
-        <p>Your Order ID: <strong id="confirmedId" style="color:var(--c-primary);"></strong></p>
-        <p style="margin-top:8px;">We'll process your cashback soon!</p>
-        <a href="track.html" class="btn btn-primary mt-16">📦 Track My Order</a>
+      <div id="successCard" style="display:none;" class="card mt-16">
+        <div class="success-hero">
+          <div class="success-icon">🎉</div>
+          <h3 style="margin-bottom:8px;">Order Submitted!</h3>
+          <p>Order ID: <strong id="confirmedId" style="color:var(--c-primary);"></strong></p>
+        </div>
+        <div class="next-step-card">
+          <div style="font-weight:700;margin-bottom:6px;">📦 What happens next?</div>
+          <p style="font-size:13px;">Once your item is <strong style="color:var(--c-text);">delivered</strong>, go to <strong style="color:var(--c-primary);">My Orders</strong> and upload a delivery screenshot — this tells us you're ready for your cashback!</p>
+        </div>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+          <a href="my-orders.html" class="btn btn-primary">📱 Go to My Orders</a>
+          <a href="track.html" class="btn btn-ghost">📦 Track This Order</a>
+        </div>
       </div>
     </div>
   </div>
@@ -104,10 +180,9 @@
 
 <script src="lib/hh.js"></script>
 <script>
-// Particles mini
 (function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:40},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.3+.05}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
 
-let product=null;
+let product=null, selectedPM="";
 const id=new URLSearchParams(location.search).get("id");
 HH.captureRef();
 
@@ -118,6 +193,12 @@ HH.captureRef();
   if(!res.success||!res.product){showErr();return;}
   product=res.product;
   render(product);
+
+  // Prefill from saved buyer info
+  const savedWA=localStorage.getItem("hh_buyer_wa");
+  const savedName=localStorage.getItem("hh_buyer_name");
+  if(savedWA) document.getElementById("bWA").value=savedWA;
+  if(savedName) document.getElementById("bName").value=savedName;
 })();
 
 function showErr(){document.getElementById("loading").style.display="none";document.getElementById("errPage").style.display="block";}
@@ -143,8 +224,62 @@ function render(p){
   document.getElementById("content").style.display="block";
 }
 
+// ── WIZARD NAVIGATION ────────────────────────────────────────
+function goStep(n){
+  if(n===2 && !validateStep1()) return;
+  if(n===3 && !validateStep2()) return;
+  for(let i=1;i<=3;i++){
+    document.getElementById("step"+i).classList.toggle("active",i===n);
+    const dot=document.getElementById("wd"+i);
+    dot.classList.remove("active","done");
+    if(i<n) dot.classList.add("done");
+    else if(i===n) dot.classList.add("active");
+    if(i<3){
+      const line=document.getElementById("wl"+i);
+      line.classList.toggle("done", i<n);
+    }
+  }
+}
+
+function validateStep1(){
+  const err=document.getElementById("formErr");err.style.display="none";
+  if(!document.getElementById("bName").value.trim()||!document.getElementById("bWA").value.trim()||!document.getElementById("bOrderId").value.trim()){
+    err.textContent="Please fill in your name, WhatsApp, and Order ID.";err.style.display="block";
+    document.getElementById("step1").scrollIntoView({behavior:"smooth",block:"center"});
+    return false;
+  }
+  return true;
+}
+function validateStep2(){
+  const err=document.getElementById("formErr");err.style.display="none";
+  if(!selectedPM||!document.getElementById("bPaymentId").value.trim()){
+    err.textContent="Please select a payment method and enter your account details.";err.style.display="block";
+    return false;
+  }
+  return true;
+}
+
+// ── PAYMENT METHOD ─────────────────────────────────────────────
+const PM_PLACEHOLDERS={
+  Zelle:"Zelle email or phone number",
+  CashApp:"Your $Cashtag (e.g. $YourName)",
+  Venmo:"Your Venmo @username",
+  PayPal:"Your PayPal email address",
+};
+function selectPM(pm){
+  selectedPM=pm;
+  document.querySelectorAll(".pm-option").forEach(el=>el.classList.toggle("selected",el.dataset.pm===pm));
+  const input=document.getElementById("bPaymentId");
+  input.disabled=false;
+  input.placeholder=PM_PLACEHOLDERS[pm];
+  document.getElementById("pmIdLabel").textContent=`${pm} Account Details *`;
+  input.focus();
+}
+
+// ── SUBMIT ───────────────────────────────────────────────────
 document.getElementById("orderForm").addEventListener("submit",async e=>{
   e.preventDefault();
+  if(!validateStep1()||!validateStep2())return;
   const btn=document.getElementById("submitBtn");
   const err=document.getElementById("formErr");
   err.style.display="none";
@@ -152,17 +287,19 @@ document.getElementById("orderForm").addEventListener("submit",async e=>{
   const wa=document.getElementById("bWA").value.trim();
   const oid=document.getElementById("bOrderId").value.trim();
   const notes=document.getElementById("bNotes").value.trim();
+  const paymentId=document.getElementById("bPaymentId").value.trim();
   const file=document.getElementById("sFile").files[0];
-  if(!name||!wa||!oid){err.textContent="Please fill in all required fields.";err.style.display="block";return;}
   if(!file){err.textContent="Please upload your order screenshot.";err.style.display="block";return;}
   btn.disabled=true;btn.textContent="Uploading screenshot...";
   let screenshot_url="";
   try{ screenshot_url=await HH.uploadFile(file); }
-  catch(e2){err.textContent="Upload failed: "+e2.message;err.style.display="block";btn.disabled=false;btn.textContent="Submit & Claim Cashback";return;}
+  catch(e2){err.textContent="Upload failed: "+e2.message;err.style.display="block";btn.disabled=false;btn.textContent="Submit & Claim Cashback 🚀";return;}
   btn.textContent="Saving order...";
-  const res=await HH.get("submitOrder",{buyer_name:name,buyer_whatsapp:wa,product_id:product.product_id,amazon_order_id:oid,screenshot_url,notes,agent_id:HH.getRef()});
-  btn.disabled=false;btn.textContent="Submit & Claim Cashback";
+  const res=await HH.get("submitOrder",{buyer_name:name,buyer_whatsapp:wa,product_id:product.product_id,amazon_order_id:oid,screenshot_url,payment_method:selectedPM,payment_id:paymentId,notes,agent_id:HH.getRef()});
+  btn.disabled=false;btn.textContent="Submit & Claim Cashback 🚀";
   if(res.success){
+    localStorage.setItem("hh_buyer_wa", wa);
+    localStorage.setItem("hh_buyer_name", name);
     document.getElementById("formCard").style.display="none";
     document.getElementById("successCard").style.display="block";
     document.getElementById("confirmedId").textContent=res.order_id;
