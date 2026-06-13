@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>My Orders — Happiness Hub</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+.page{max-width:760px;margin:0 auto;padding:28px 24px 60px;}
+.progress-wrap{display:flex;justify-content:space-between;position:relative;margin:20px 0;}
+.progress-wrap::before{content:'';position:absolute;top:16px;left:12%;right:12%;height:2px;background:var(--c-border2);z-index:0;}
+.prog-step{display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1;flex:1;}
+.prog-dot{width:32px;height:32px;border-radius:50%;border:2px solid var(--c-dim);background:var(--c-bg);display:flex;align-items:center;justify-content:center;font-size:14px;transition:.3s;}
+.prog-dot.done{background:var(--c-accent);border-color:var(--c-accent);color:#000;}
+.prog-dot.active{background:var(--c-primary);border-color:var(--c-primary);box-shadow:0 0 16px rgba(124,106,255,.5);}
+.prog-dot.pulse{animation:pulse 2s ease-in-out infinite;}
+.prog-lbl{font-size:11px;color:var(--c-muted);text-align:center;line-height:1.3;}
+.prog-lbl.active{color:var(--c-primary);font-weight:600;}
+.detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--c-border2);font-size:13px;}
+.detail-row:last-child{border:none;}
+.order-card{margin-bottom:16px;}
+.action-banner{
+  background:linear-gradient(135deg,rgba(255,171,0,.12),rgba(255,171,0,.04));
+  border:1px solid rgba(255,171,0,.3); border-radius:var(--r-md);
+  padding:14px 16px; margin:14px 0;
+}
+.action-banner-title{font-weight:700;color:#ffab00;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.upload-zone-sm{border:2px dashed var(--c-border);border-radius:var(--r-md);padding:16px;text-align:center;cursor:pointer;transition:.2s;margin-top:10px;}
+.upload-zone-sm:hover{border-color:var(--c-primary);}
+.upload-zone-sm input{display:none;}
+.summary-banner{
+  background:rgba(124,106,255,.06); border:1px solid var(--c-border);
+  border-radius:var(--r-xl); padding:18px 22px; margin-bottom:20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo"><div class="logo-box">😊</div>Happiness<span>Hub</span></a>
+    <div class="nav-links"><a href="index.html">Deals</a><a href="my-orders.html" class="active">My Orders</a></div>
+    <button onclick="switchAccount()" class="btn btn-ghost btn-sm hide-mob">🔄 Switch Number</button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="flex-between mb-16 slide-up">
+    <div>
+      <h2 style="margin-bottom:4px;">📱 My Orders</h2>
+      <p id="waLabel">Loading...</p>
+    </div>
+    <button onclick="loadOrders()" class="btn btn-ghost btn-sm">🔄 Refresh</button>
+  </div>
+
+  <div id="actionSummary"></div>
+
+  <div class="grid-3 mb-24">
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-val" id="sTotal">0</div><div class="stat-lbl">Total Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-val" id="sPending">0</div><div class="stat-lbl">In Progress</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-val" id="sCash">$0</div><div class="stat-lbl">Cashback Received</div></div></div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<footer class="footer"><p>© <span id="yr"></span> Happiness Hub</p></footer>
+
+<script src="lib/hh.js"></script>
+<script>
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:30},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.15+.03}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+document.getElementById("yr").textContent = new Date().getFullYear();
+
+const wa = localStorage.getItem("hh_buyer_wa");
+if (!wa) location.href = "buyer-login.html";
+
+const STEPS=[{key:"Pending",icon:"⏳",label:"Submitted"},{key:"Ordered",icon:"🛒",label:"Ordered"},{key:"Delivered",icon:"📦",label:"Delivered"},{key:"Cashback Sent",icon:"💸",label:"Cashback Sent"}];
+const ERR_ST=["Rejected","Need More Info","PayPal Issue"];
+
+function switchAccount(){
+  localStorage.removeItem("hh_buyer_wa");
+  localStorage.removeItem("hh_buyer_name");
+  location.href="buyer-login.html";
+}
+
+(async()=>{
+  document.getElementById("waLabel").textContent = `📱 ${wa}`;
+  await loadOrders();
+})();
+
+let lastOrders=[];
+
+async function loadOrders(){
+  document.getElementById("results").innerHTML=`<div class="flex-center" style="padding:50px;"><div class="spinner"></div></div>`;
+  const res = await HH.get("getBuyerOrders",{whatsapp:wa});
+  if(!res.success){
+    document.getElementById("results").innerHTML=`<div class="card text-center" style="padding:40px;"><div style="font-size:48px;margin-bottom:12px;">📭</div><h3>No orders yet</h3><p>${HH.esc(res.error||"Orders you submit will appear here.")}</p><a href="index.html" class="btn btn-primary mt-16">Browse Deals</a></div>`;
+    document.getElementById("sTotal").textContent="0";document.getElementById("sPending").textContent="0";document.getElementById("sCash").textContent="$0";
+    document.getElementById("actionSummary").innerHTML="";
+    return;
+  }
+  lastOrders=res.orders;
+  const s=res.stats||{};
+  document.getElementById("sTotal").textContent=s.total||0;
+  document.getElementById("sPending").textContent=s.pending||0;
+  document.getElementById("sCash").textContent=HH.fmt$(s.total_cashback||0);
+
+  if(s.needs_delivery_proof>0){
+    document.getElementById("actionSummary").innerHTML=`<div class="summary-banner slide-up">
+      <div style="font-size:32px;">📸</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;color:var(--c-text);">${s.needs_delivery_proof} order${s.needs_delivery_proof>1?"s":""} need${s.needs_delivery_proof>1?"":"s"} a delivery photo</div>
+        <div style="font-size:13px;color:var(--c-muted);">Scroll down and upload a delivery screenshot to move toward your cashback.</div>
+      </div>
+    </div>`;
+  } else {
+    document.getElementById("actionSummary").innerHTML="";
+  }
+
+  document.getElementById("results").innerHTML = res.orders.map(renderOrder).join("");
+}
+
+function renderOrder(o){
+  const si=STEPS.findIndex(s=>s.key===o.status);
+  const isErr=ERR_ST.includes(o.status);
+  const needsProof=(o.status==="Pending"||o.status==="Ordered")&&!o.delivery_screenshot_url;
+
+  const steps=STEPS.map((s,i)=>{
+    let cls="";
+    if(!isErr&&i<si) cls="done";
+    else if(!isErr&&i===si) cls="active"+(needsProof&&i===2?" pulse":"");
+    else if(isErr&&i<si) cls="done";
+    return `<div class="prog-step"><div class="prog-dot ${cls}">${s.icon}</div><div class="prog-lbl ${!isErr&&i===si?"active":""}">${s.label}</div></div>`;
+  }).join("");
+
+  const errBanner=isErr?`<div style="background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.2);border-radius:var(--r-md);padding:12px 14px;margin:12px 0;"><div style="font-weight:600;color:#ff4757;">${HH.esc(o.status)}</div>${o.seller_notes?`<div style="font-size:13px;color:var(--c-muted);margin-top:4px;">${HH.esc(o.seller_notes)}</div>`:""}</div>`:"";
+
+  const proofBanner=o.status==="Cashback Sent"&&o.cashback_proof_url?`<div style="background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);border-radius:var(--r-md);padding:12px 14px;margin:12px 0;"><div style="font-weight:600;color:var(--c-accent);margin-bottom:8px;">💸 Cashback Sent!</div><a href="${HH.esc(o.cashback_proof_url)}" target="_blank" class="btn btn-ghost btn-sm">📄 View Refund Screenshot</a></div>`:"";
+
+  const notesBanner=o.seller_notes&&!isErr?`<div style="background:rgba(255,255,255,.03);border:1px solid var(--c-border2);border-radius:var(--r-md);padding:10px 14px;margin:12px 0;font-size:13px;color:var(--c-muted);">💬 ${HH.esc(o.seller_notes)}</div>`:"";
+
+  const myShot=o.screenshot_url?`<a href="${HH.esc(o.screenshot_url)}" target="_blank" class="btn btn-ghost btn-sm" style="margin-top:8px;">📎 Order Screenshot</a>`:"";
+  const delShot=o.delivery_screenshot_url?`<a href="${HH.esc(o.delivery_screenshot_url)}" target="_blank" class="btn btn-ghost btn-sm" style="margin-top:8px;">📦 Delivery Screenshot</a>`:"";
+
+  // Action: upload delivery proof
+  let actionHtml="";
+  if(needsProof){
+    actionHtml=`<div class="action-banner">
+      <div class="action-banner-title">📸 Action needed: Mark as Delivered</div>
+      <div style="font-size:13px;color:var(--c-muted);margin-bottom:4px;">Once your item arrives, upload a photo of the delivered package to continue toward cashback.</div>
+      <div class="upload-zone-sm" onclick="document.getElementById('dp-${o.order_id}').click()">
+        <input type="file" id="dp-${o.order_id}" accept="image/*" onchange="uploadDeliveryProof('${o.order_id}',this)">
+        <div id="dp-ph-${o.order_id}"><div style="font-size:22px;">📦</div><div style="font-size:12px;color:var(--c-muted);margin-top:4px;">Click to upload delivery photo</div></div>
+        <img id="dp-preview-${o.order_id}" style="display:none;max-height:80px;margin:6px auto 0;border-radius:6px;">
+      </div>
+      <div id="dp-status-${o.order_id}" style="font-size:12px;margin-top:8px;"></div>
+    </div>`;
+  }
+
+  const paymentInfo=o.payment_method?`<div class="detail-row"><span style="color:var(--c-muted);">Refund Method</span><span>${HH.esc(o.payment_method)}</span></div>`:"";
+
+  return `<div class="card order-card slide-up">
+    <div class="flex-between" style="margin-bottom:14px;">
+      <div><div style="font-size:12px;color:var(--c-muted);">Order</div><div style="font-weight:700;font-size:15px;">${HH.esc(o.order_id)}</div></div>
+      ${HH.statusBadge(o.status)}
+    </div>
+    <div class="progress-wrap">${steps}</div>
+    ${actionHtml}
+    ${errBanner}${proofBanner}${notesBanner}
+    <div>
+      <div class="detail-row"><span style="color:var(--c-muted);">Product</span><span style="font-weight:500;max-width:200px;text-align:right;">${HH.esc(o.product_title)}</span></div>
+      <div class="detail-row"><span style="color:var(--c-muted);">Order ID</span><span style="font-family:monospace;">${HH.esc(o.amazon_order_id)}</span></div>
+      <div class="detail-row"><span style="color:var(--c-muted);">Cashback</span><span style="color:var(--c-primary);font-weight:700;">${HH.fmt$(o.cashback_amount)}</span></div>
+      ${paymentInfo}
+      <div class="detail-row"><span style="color:var(--c-muted);">Submitted</span><span>${HH.timeAgo(o.submitted_at)}</span></div>
+      <div class="detail-row"><span style="color:var(--c-muted);">Last Update</span><span>${HH.timeAgo(o.updated_at)}</span></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">${myShot}${delShot}</div>
+  </div>`;
+}
+
+async function uploadDeliveryProof(orderId, input){
+  const file=input.files[0];if(!file)return;
+  const status=document.getElementById(`dp-status-${orderId}`);
+  const preview=document.getElementById(`dp-preview-${orderId}`);
+  const ph=document.getElementById(`dp-ph-${orderId}`);
+
+  // Preview
+  const reader=new FileReader();
+  reader.onload=()=>{preview.src=reader.result;preview.style.display="block";ph.style.display="none";};
+  reader.readAsDataURL(file);
+
+  status.textContent="Uploading...";status.style.color="var(--c-muted)";
+  try{
+    const url=await HH.uploadFile(file);
+    status.textContent="Saving...";
+    const res=await HH.get("submitDeliveryProof",{order_id:orderId,delivery_screenshot_url:url});
+    if(res.success){
+      status.textContent="✅ Delivery proof submitted! Status updated.";
+      status.style.color="var(--c-accent)";
+      HH.toast("Marked as delivered!","success");
+      setTimeout(loadOrders,1200);
+    } else {
+      status.textContent="❌ "+(res.error||"Failed");status.style.color="#ff4757";
+    }
+  }catch(e){
+    status.textContent="❌ "+e.message;status.style.color="#ff4757";
+  }
+}
+</script>
+</body>
+</html>
