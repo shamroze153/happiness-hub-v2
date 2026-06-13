@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin — Happiness Hub</title>
+<link rel="stylesheet" href="../styles/main.css">
+<style>
+.panel{display:none;animation:fadeIn .3s ease;}
+.panel.active{display:block;}
+.tbl-thumb{width:38px;height:38px;border-radius:8px;object-fit:cover;background:var(--c-surface);}
+.form-section{background:rgba(124,106,255,.04);border:1px solid var(--c-border);border-radius:var(--r-md);padding:16px;margin-bottom:16px;}
+.form-section-title{font-size:11px;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo"><div class="logo-box">😊</div>Happiness<span>Hub</span> <span style="font-size:11px;background:rgba(124,106,255,.15);color:var(--c-primary);padding:2px 8px;border-radius:50px;margin-left:4px;">ADMIN</span></a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="../index.html" target="_blank" class="btn btn-ghost btn-sm">🌐 View Site</a>
+      <button onclick="logout()" class="btn btn-ghost btn-sm">Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="dash-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">Overview</div>
+    <button class="sb-link active" id="nav-overview" onclick="go('overview')">📊 Dashboard</button>
+    <div class="sb-section">Catalog</div>
+    <button class="sb-link" id="nav-products" onclick="go('products')">🏷️ Products</button>
+    <div class="sb-section">Users</div>
+    <button class="sb-link" id="nav-agents" onclick="go('agents')">👥 Agents</button>
+    <button class="sb-link" id="nav-sellers" onclick="go('sellers')">🏪 Sellers</button>
+    <div class="sb-section">Operations</div>
+    <button class="sb-link" id="nav-orders" onclick="go('orders')">📋 All Orders</button>
+    <div style="margin-top:auto;padding-top:20px;">
+      <button class="sb-link" onclick="window.open('../index.html','_blank')">🌐 View Site</button>
+      <button class="sb-link" style="color:#ff4757;" onclick="logout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main-area">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="flex-between mb-24"><h2>📊 Dashboard</h2><button onclick="loadDashboard()" class="btn btn-ghost btn-sm">🔄 Refresh</button></div>
+      <div class="grid-4 mb-24">
+        <div class="stat-card"><div class="stat-icon">🏷️</div><div><div class="stat-val" id="ovP">—</div><div class="stat-lbl">Products</div></div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-val" id="ovO">—</div><div class="stat-lbl">Total Orders</div></div></div>
+        <div class="stat-card"><div class="stat-icon">☀️</div><div><div class="stat-val" id="ovT">—</div><div class="stat-lbl">Today</div></div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-val" id="ovPend">—</div><div class="stat-lbl">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-val" id="ovCS">—</div><div class="stat-lbl">Cashback Sent</div></div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-val" id="ovAmt">—</div><div class="stat-lbl">Total $ Sent</div></div></div>
+        <div class="stat-card"><div class="stat-icon">👥</div><div><div class="stat-val" id="ovA">—</div><div class="stat-lbl">Agents</div></div></div>
+        <div class="stat-card"><div class="stat-icon">🏪</div><div><div class="stat-val" id="ovS">—</div><div class="stat-lbl">Sellers</div></div></div>
+      </div>
+      <h3 style="font-size:14px;color:var(--c-muted);margin-bottom:12px;">Recent Orders</h3>
+      <div class="tbl-wrap" id="recentTbl"></div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="panel" id="panel-products">
+      <div class="flex-between mb-16"><h2>🏷️ Products</h2><button onclick="openProductModal()" class="btn btn-primary">+ Add Product</button></div>
+      <div class="flex-between mb-16" style="gap:12px;">
+        <div class="search-wrap" style="flex:1;"><span class="search-icon">🔍</span><input type="text" class="form-control" id="pSearch" placeholder="Search products..." oninput="filterProducts()"></div>
+        <select class="form-control" id="pStatusF" onchange="filterProducts()" style="max-width:150px;"><option value="">All</option><option value="Active">Active</option><option value="Disabled">Disabled</option></select>
+        <button onclick="loadProducts()" class="btn btn-ghost btn-sm">🔄</button>
+      </div>
+      <div class="tbl-wrap" id="productsTbl"><div class="flex-center" style="padding:50px;"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- AGENTS -->
+    <div class="panel" id="panel-agents">
+      <div class="flex-between mb-16"><h2>👥 Agents</h2><button onclick="openAgentModal()" class="btn btn-primary">+ Add Agent</button></div>
+      <div class="tbl-wrap" id="agentsTbl"><div class="flex-center" style="padding:50px;"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- SELLERS -->
+    <div class="panel" id="panel-sellers">
+      <div class="flex-between mb-16"><h2>🏪 Sellers</h2><button onclick="openSellerModal()" class="btn btn-primary">+ Add Seller</button></div>
+      <div class="tbl-wrap" id="sellersTbl"><div class="flex-center" style="padding:50px;"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="panel" id="panel-orders">
+      <div class="flex-between mb-16"><h2>📋 All Orders</h2><button onclick="loadAllOrders()" class="btn btn-ghost btn-sm">🔄 Refresh</button></div>
+      <div class="flex-between mb-16" style="gap:12px;">
+        <div class="search-wrap" style="flex:1;"><span class="search-icon">🔍</span><input type="text" class="form-control" id="oSearch" placeholder="Search orders..." oninput="filterAllOrders()"></div>
+        <select class="form-control" id="oStatusF" onchange="filterAllOrders()" style="max-width:160px;"><option value="">All</option><option>Pending</option><option>Ordered</option><option>Delivered</option><option>Cashback Sent</option><option>Rejected</option><option>Need More Info</option><option>PayPal Issue</option></select>
+      </div>
+      <div class="tbl-wrap" id="allOrdersTbl"><div class="flex-center" style="padding:50px;"><div class="spinner"></div></div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ORDER UPDATE MODAL -->
+<div class="modal-overlay" id="orderModal" style="display:none;" onclick="if(event.target===this)closeOM()">
+<div class="modal">
+  <div class="modal-hdr"><h3>Update Order</h3><button class="modal-close" onclick="closeOM()">✕</button></div>
+  <div id="omInfo" style="margin-bottom:20px;"></div>
+  <div class="form-group"><label class="form-label">New Status</label>
+    <select id="omStatus" class="form-control">
+      <option value="">— Keep current —</option>
+      <option>Pending</option><option>Ordered</option><option>Delivered</option>
+      <option>Cashback Sent</option><option>Rejected</option><option>Need More Info</option><option>PayPal Issue</option>
+    </select>
+  </div>
+  <div class="form-group"><label class="form-label">Note for Buyer</label><textarea id="omNote" class="form-control" rows="2" placeholder="Visible in buyer's tracking page..."></textarea></div>
+  <div class="form-group">
+    <label class="form-label">Cashback / Refund Proof</label>
+    <input type="text" id="omProofUrl" class="form-control" placeholder="Paste refund screenshot link or upload below">
+    <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin-top:8px;display:inline-flex;">
+      📎 Upload Refund Proof <input type="file" id="omProofFile" accept="image/*" style="display:none;" onchange="omUploadProof()">
+    </label>
+    <div id="omProofStatus" style="font-size:12px;color:var(--c-muted);margin-top:4px;"></div>
+  </div>
+  <div id="omErr" class="err-box" style="display:none;"></div>
+  <div style="display:flex;gap:12px;">
+    <button onclick="omSave()" class="btn btn-primary" id="omSaveBtn">Save Changes</button>
+    <button onclick="closeOM()" class="btn btn-ghost">Cancel</button>
+  </div>
+</div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="productModal" style="display:none;" onclick="if(event.target===this)closePM()">
+<div class="modal" style="max-width:680px;">
+  <div class="modal-hdr"><h3 id="pmTitle">Add Product</h3><button class="modal-close" onclick="closePM()">✕</button></div>
+  <form id="productForm" novalidate>
+    <input type="hidden" id="editPId">
+    <div class="form-section">
+      <div class="form-section-title">Required Info</div>
+      <div class="form-group"><label class="form-label">Product Title *</label><input type="text" id="pTitle" class="form-control" placeholder="e.g. Wireless Earbuds Pro" required></div>
+      <div class="row-2">
+        <div class="form-group"><label class="form-label">Product Link *</label><input type="url" id="pLink" class="form-control" placeholder="https://amazon.com/..." required></div>
+        <div class="form-group"><label class="form-label">Cashback Amount ($) *</label><input type="number" id="pCash" class="form-control" placeholder="15.00" min="0" step="0.01" required></div>
+      </div>
+      <div class="row-2">
+        <div class="form-group"><label class="form-label">Category *</label><input type="text" id="pCat" class="form-control" placeholder="Electronics, Fashion..." required list="catList"><datalist id="catList"><option value="Electronics"><option value="Fashion"><option value="Beauty"><option value="Home"><option value="Sports"><option value="Books"><option value="Toys"><option value="Food"><option value="Health"></datalist></div>
+        <div class="form-group"><label class="form-label">Sold By</label><input type="text" id="pSoldBy" class="form-control" placeholder="Store name"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Media & Display</div>
+      <div class="form-group"><label class="form-label">Image URL</label><input type="url" id="pImg" class="form-control" placeholder="https://..." oninput="previewPImg()"></div>
+      <img id="pImgPreview" style="display:none;max-height:80px;border-radius:8px;margin-top:8px;">
+      <div class="row-2">
+        <div class="form-group"><label class="form-label">Badge Text</label><input type="text" id="pBadge" class="form-control" placeholder="HOT / NEW / LIMITED"></div>
+        <div class="form-group"><label class="form-label">Deadline</label><input type="text" id="pDeadline" class="form-control" placeholder="Dec 31, 2025"></div>
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Details</div>
+      <div class="form-group"><label class="form-label">Policy</label><input type="text" id="pPolicy" class="form-control" placeholder="Full cashback after 7-day delivery"></div>
+      <div class="form-group"><label class="form-label">Description</label><textarea id="pDesc" class="form-control" rows="2" placeholder="Optional product description..."></textarea></div>
+      <div class="form-group"><label class="form-label">Instructions (how to claim cashback)</label><textarea id="pInstr" class="form-control" rows="2" placeholder="Step-by-step cashback instructions..."></textarea></div>
+      <div class="row-2">
+        <div class="form-group"><label class="form-label">Tags</label><input type="text" id="pTags" class="form-control" placeholder="wireless, gaming, sale"></div>
+        <div class="form-group"><label class="form-label">Stock Status</label><select id="pStock" class="form-control"><option value="Available">Available</option><option value="Limited">Limited</option><option value="Out">Out of Stock</option></select></div>
+      </div>
+      <div class="row-2">
+        <div class="form-group"><label class="form-label">Status</label><select id="pStatus" class="form-control"><option value="Active">Active</option><option value="Disabled">Disabled</option></select></div>
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:26px;"><input type="checkbox" id="pFeatured" style="width:18px;height:18px;accent-color:var(--c-primary);cursor:pointer;"><label for="pFeatured" style="font-size:14px;cursor:pointer;">⭐ Feature this product</label></div>
+      </div>
+    </div>
+    <div id="pmErr" class="err-box" style="display:none;"></div>
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn btn-primary" id="pmBtn">Add Product</button>
+      <button type="button" onclick="closePM()" class="btn btn-ghost">Cancel</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- AGENT MODAL -->
+<div class="modal-overlay" id="agentModal" style="display:none;" onclick="if(event.target===this)closeAM()">
+<div class="modal">
+  <div class="modal-hdr"><h3>Add Agent</h3><button class="modal-close" onclick="closeAM()">✕</button></div>
+  <form id="agentForm">
+    <div class="row-2">
+      <div class="form-group"><label class="form-label">Agent ID *</label><input type="text" id="aId" class="form-control" placeholder="e.g. agent01" required></div>
+      <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="aName" class="form-control" placeholder="Agent name" required></div>
+      <div class="form-group"><label class="form-label">Password *</label><input type="password" id="aPw" class="form-control" placeholder="Set password" required></div>
+      <div class="form-group"><label class="form-label">Commission %</label><input type="number" id="aComm" class="form-control" placeholder="0" min="0" max="100"></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="aEmail" class="form-control" placeholder="agent@email.com"></div>
+      <div class="form-group"><label class="form-label">WhatsApp</label><input type="tel" id="aWA" class="form-control" placeholder="+123456789"></div>
+    </div>
+    <div id="amErr" class="err-box" style="display:none;"></div>
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn btn-primary" id="amBtn">Add Agent</button>
+      <button type="button" onclick="closeAM()" class="btn btn-ghost">Cancel</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<!-- SELLER MODAL -->
+<div class="modal-overlay" id="sellerModal" style="display:none;" onclick="if(event.target===this)closeSM()">
+<div class="modal">
+  <div class="modal-hdr"><h3>Add Seller</h3><button class="modal-close" onclick="closeSM()">✕</button></div>
+  <form id="sellerForm">
+    <div class="row-2">
+      <div class="form-group"><label class="form-label">Full Name *</label><input type="text" id="sName" class="form-control" placeholder="Seller name" required></div>
+      <div class="form-group"><label class="form-label">Store Name</label><input type="text" id="sStore" class="form-control" placeholder="Store name"></div>
+      <div class="form-group"><label class="form-label">Password *</label><input type="password" id="sPw" class="form-control" placeholder="Set password" required></div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" id="sEmail" class="form-control" placeholder="seller@email.com"></div>
+      <div class="form-group"><label class="form-label">WhatsApp</label><input type="tel" id="sWA" class="form-control" placeholder="+123456789"></div>
+    </div>
+    <div id="smErr" class="err-box" style="display:none;"></div>
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn btn-primary" id="smBtn">Add Seller</button>
+      <button type="button" onclick="closeSM()" class="btn btn-ghost">Cancel</button>
+    </div>
+  </form>
+</div>
+</div>
+
+<script src="../lib/hh.js"></script>
+<script>
+(function(){const c=document.getElementById("particles"),ctx=c.getContext("2d");function r(){c.width=innerWidth;c.height=innerHeight;}r();window.addEventListener("resize",r);const pts=Array.from({length:40},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.5+.5,a:Math.random()*.15+.03}));function draw(){ctx.clearRect(0,0,c.width,c.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>c.width)p.vx*=-1;if(p.y<0||p.y>c.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(124,106,255,${p.a})`;ctx.fill();});requestAnimationFrame(draw);}draw();})();
+
+// Set admin session directly - no login needed
+HH.setSession("admin",{token:"admin_direct",actor_id:"admin",actor_type:"admin"});
+
+let allProducts=[],allAgents=[],allSellers=[],allOrders=[],currentOrderId=null;
+
+document.addEventListener("DOMContentLoaded",()=>{ loadDashboard(); });
+
+const PANELS=["overview","products","agents","sellers","orders"];
+function go(name){
+  PANELS.forEach(p=>{
+    document.getElementById(`panel-${p}`).classList.toggle("active",p===name);
+    document.getElementById(`nav-${p}`)?.classList.toggle("active",p===name);
+  });
+  if(name==="products"&&!allProducts.length) loadProducts();
+  if(name==="agents"&&!allAgents.length)     loadAgents();
+  if(name==="sellers"&&!allSellers.length)   loadSellers();
+  if(name==="orders"&&!allOrders.length)     loadAllOrders();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+async function loadDashboard(){
+  const res=await HH.get("getAdminDashboard");
+  if(!res.success){HH.toast(res.error||"Failed","error");return;}
+  const s=res.stats;
+  document.getElementById("ovP").textContent=s.total_products;
+  document.getElementById("ovO").textContent=s.total_orders;
+  document.getElementById("ovT").textContent=s.today_orders;
+  document.getElementById("ovPend").textContent=s.pending_orders;
+  document.getElementById("ovCS").textContent=s.cashback_sent;
+  document.getElementById("ovAmt").textContent=HH.fmt$(s.total_cashback_sent);
+  document.getElementById("ovA").textContent=s.total_agents;
+  document.getElementById("ovS").textContent=s.total_sellers;
+  const orders=res.recent_orders||[];
+  if(!orders.length){document.getElementById("recentTbl").innerHTML=`<div class="empty-state"><p>No orders yet.</p></div>`;return;}
+  document.getElementById("recentTbl").innerHTML=`<table><thead><tr><th>Buyer</th><th>Product</th><th>Cashback</th><th>Refund Via</th><th>Status</th><th>Time</th></tr></thead><tbody>${orders.slice(0,10).map(o=>`<tr><td><div style="font-weight:500;">${HH.esc(o.buyer_name)}</div><div style="font-size:11px;color:var(--c-muted);">${HH.esc(o.buyer_whatsapp)}</div></td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${HH.esc(o.product_title)}</td><td style="color:var(--c-primary);font-weight:600;">${HH.fmt$(o.cashback_amount)}</td><td style="font-size:12px;">${HH.esc(o.payment_method||"—")}</td><td>${HH.statusBadge(o.status)}</td><td style="font-size:12px;color:var(--c-muted);">${HH.timeAgo(o.submitted_at)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+// ── PRODUCTS ────────────────────────────────────────────────
+async function loadProducts(){
+  document.getElementById("productsTbl").innerHTML=`<div class="flex-center" style="padding:50px;"><div class="spinner"></div></div>`;
+  const res=await HH.get("getProducts");
+  if(!res.success){HH.toast(res.error,"error");return;}
+  allProducts=res.products||[];
+  renderProducts(allProducts);
+}
+
+function filterProducts(){
+  const q=(document.getElementById("pSearch").value||"").toLowerCase();
+  const st=document.getElementById("pStatusF").value;
+  let f=allProducts;
+  if(st)f=f.filter(p=>p.status===st);
+  if(q)f=f.filter(p=>(p.title||"").toLowerCase().includes(q)||(p.category||"").toLowerCase().includes(q));
+  renderProducts(f);
+}
+
+function renderProducts(products){
+  if(!products.length){document.getElementById("productsTbl").innerHTML=`<div class="empty-state"><div class="icon">🏷️</div><p>No products yet.</p><button onclick="openProductModal()" class="btn btn-primary mt-16">Add First Product</button></div>`;return;}
+  document.getElementById("productsTbl").innerHTML=`<table><thead><tr><th>Image</th><th>Title</th><th>Category</th><th>Cashback</th><th>Status</th><th>Actions</th></tr></thead><tbody>${products.map(p=>{const fb=`https://placehold.co/40x40/13131f/7c6aff?text=P`;return`<tr><td><img class="tbl-thumb" src="${HH.esc(p.image_url)||fb}" onerror="this.src='${fb}'"></td><td><div style="font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${HH.esc(p.title)}</div>${p.featured==="TRUE"||p.featured===true?'<div style="font-size:11px;color:#ffab00;">⭐ Featured</div>':''}</td><td><span class="badge badge-info">${HH.esc(p.category)}</span></td><td style="color:var(--c-primary);font-weight:600;">${HH.fmt$(p.cashback_amount)}</td><td><span class="badge ${p.status==="Active"?"badge-green":"badge-red"}">${HH.esc(p.status||"Active")}</span></td><td><div style="display:flex;gap:6px;"><button onclick="editProduct('${HH.esc(p.product_id)}')" class="btn btn-ghost btn-sm">✏️</button><button onclick="toggleP('${HH.esc(p.product_id)}','${p.status==="Active"?"Disabled":"Active"}')" class="btn btn-ghost btn-sm">${p.status==="Active"?"🚫":"✅"}</button><button onclick="deleteP('${HH.esc(p.product_id)}','${HH.esc(p.title)}')" class="btn btn-danger btn-sm">🗑️</button></div></td></tr>`;}).join("")}</tbody></table>`;
+}
+
+function openProductModal(p=null){
+  document.getElementById("productForm").reset();
+  document.getElementById("editPId").value="";
+  document.getElementById("pmTitle").textContent="Add Product";
+  document.getElementById("pmBtn").textContent="Add Product";
+  document.getElementById("pmErr").style.display="none";
+  document.getElementById("pImgPreview").style.display="none";
+  if(p){
+    document.getElementById("pmTitle").textContent="Edit Product";
+    document.getElementById("pmBtn").textContent="Save Changes";
+    document.getElementById("editPId").value=p.product_id;
+    document.getElementById("pTitle").value=p.title||"";
+    document.getElementById("pLink").value=p.link||"";
+    document.getElementById("pCash").value=p.cashback_amount||"";
+    document.getElementById("pImg").value=p.image_url||"";
+    document.getElementById("pSoldBy").value=p.sold_by||"";
+    document.getElementById("pCat").value=p.category||"";
+    document.getElementById("pPolicy").value=p.policy||"";
+    document.getElementById("pDesc").value=p.description||"";
+    document.getElementById("pInstr").value=p.instructions||"";
+    document.getElementById("pDeadline").value=p.deadline||"";
+    document.getElementById("pBadge").value=p.badge_text||"";
+    document.getElementById("pTags").value=p.tags||"";
+    document.getElementById("pStock").value=p.stock_status||"Available";
+    document.getElementById("pStatus").value=p.status||"Active";
+    document.getElementById("pFeatured").checked=p.featured==="TRUE"||p.featured===true;
+    previewPImg();
+  }
+  document.getElementById("productModal").style.display="flex";
+  document.body.style.overflow="hidden";
+}
+
+function previewPImg(){const u=document.getElementById("pImg").value.trim();const i=document.getElementById("pImgPreview");if(u){i.src=u;i.style.display="block";}else{i.style.display="none";}}
+function closePM(){document.getElementById("productModal").style.display="none";document.body.style.overflow="";}
+function editProduct(id){const p=allProducts.find(x=>x.product_id===id);if(p)openProductModal(p);}
+
+async function toggleP(id,st){
+  const res=await HH.get("updateProduct",{product_id:id,status:st});
+  if(res.success){HH.toast(`Product ${st==="Active"?"enabled":"disabled"}`,"success");loadProducts();}
+  else HH.toast(res.error||"Failed","error");
+}
+
+async function deleteP(id,title){
+  if(!confirm(`Delete "${title}"?`))return;
+  const res=await HH.get("deleteProduct",{product_id:id});
+  if(res.success){HH.toast("Product deleted","success");loadProducts();}
+  else HH.toast(res.error||"Failed","error");
+}
+
+document.getElementById("productForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("pmBtn"),err=document.getElementById("pmErr");
+  err.style.display="none";
+  const editId=document.getElementById("editPId").value;
+  const body={
+    title:document.getElementById("pTitle").value.trim(),
+    link:document.getElementById("pLink").value.trim(),
+    cashback_amount:document.getElementById("pCash").value,
+    image_url:document.getElementById("pImg").value.trim(),
+    sold_by:document.getElementById("pSoldBy").value.trim(),
+    category:document.getElementById("pCat").value.trim(),
+    policy:document.getElementById("pPolicy").value.trim(),
+    description:document.getElementById("pDesc").value.trim(),
+    instructions:document.getElementById("pInstr").value.trim(),
+    deadline:document.getElementById("pDeadline").value.trim(),
+    badge_text:document.getElementById("pBadge").value.trim(),
+    tags:document.getElementById("pTags").value.trim(),
+    stock_status:document.getElementById("pStock").value,
+    status:document.getElementById("pStatus").value,
+    featured:document.getElementById("pFeatured").checked?"TRUE":"FALSE",
+  };
+  if(!body.title||!body.link||!body.cashback_amount||!body.category){err.textContent="Title, Link, Cashback, and Category are required.";err.style.display="block";return;}
+  if(editId) body.product_id=editId;
+  btn.disabled=true;btn.textContent="Saving...";
+  const action=editId?"updateProduct":"addProduct";
+  const res=await HH.get(action,body);
+  btn.disabled=false;btn.textContent=editId?"Save Changes":"Add Product";
+  if(res.success){HH.toast(editId?"Product updated!":"Product added!","success");closePM();loadProducts();}
+  else{err.textContent=res.error||"Failed";err.style.display="block";}
+});
+
+// ── AGENTS ──────────────────────────────────────────────────
+async function loadAgents(){
+  const res=await HH.get("getAgents");
+  if(!res.success){HH.toast(res.error,"error");return;}
+  allAgents=res.agents||[];
+  renderAgents(allAgents);
+}
+
+function renderAgents(agents){
+  if(!agents.length){document.getElementById("agentsTbl").innerHTML=`<div class="empty-state"><div class="icon">👥</div><p>No agents yet.</p><button onclick="openAgentModal()" class="btn btn-primary mt-16">Add First Agent</button></div>`;return;}
+  document.getElementById("agentsTbl").innerHTML=`<table><thead><tr><th>Agent ID</th><th>Name</th><th>Commission</th><th>WhatsApp</th><th>Status</th><th>Referral Link</th><th>Actions</th></tr></thead><tbody>${agents.map(a=>`<tr><td style="font-family:monospace;font-weight:700;color:var(--c-primary);">${HH.esc(a.agent_id)}</td><td>${HH.esc(a.name)}</td><td>${a.commission_rate||0}%</td><td style="font-size:13px;">${HH.esc(a.whatsapp||"—")}</td><td><span class="badge ${a.status==="Active"?"badge-green":"badge-red"}">${HH.esc(a.status||"Active")}</span></td><td><button onclick="copyText('${location.origin}${location.pathname.replace("admin/index.html","")}?ref=${a.agent_id}')" class="btn btn-ghost btn-sm">📋 Copy Link</button></td><td><button onclick="toggleAgent('${HH.esc(a.agent_id)}','${a.status==="Active"?"Disabled":"Active"}')" class="btn btn-ghost btn-sm">${a.status==="Active"?"🚫 Disable":"✅ Enable"}</button></td></tr>`).join("")}</tbody></table>`;
+}
+
+function openAgentModal(){document.getElementById("agentForm").reset();document.getElementById("amErr").style.display="none";document.getElementById("agentModal").style.display="flex";document.body.style.overflow="hidden";}
+function closeAM(){document.getElementById("agentModal").style.display="none";document.body.style.overflow="";}
+
+document.getElementById("agentForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("amBtn"),err=document.getElementById("amErr");
+  err.style.display="none";btn.disabled=true;btn.textContent="Adding...";
+  const res=await HH.get("addAgent",{agent_id:document.getElementById("aId").value.trim(),name:document.getElementById("aName").value.trim(),password:document.getElementById("aPw").value,commission_rate:document.getElementById("aComm").value||0,email:document.getElementById("aEmail").value.trim(),whatsapp:document.getElementById("aWA").value.trim()});
+  btn.disabled=false;btn.textContent="Add Agent";
+  if(res.success){HH.toast("Agent added!","success");closeAM();loadAgents();}
+  else{err.textContent=res.error||"Failed";err.style.display="block";}
+});
+
+async function toggleAgent(id,st){
+  const res=await HH.get("updateAgent",{agent_id:id,status:st});
+  if(res.success){HH.toast(`Agent ${st==="Active"?"enabled":"disabled"}`,"success");loadAgents();}
+  else HH.toast(res.error||"Failed","error");
+}
+
+// ── SELLERS ──────────────────────────────────────────────────
+async function loadSellers(){
+  const res=await HH.get("getSellers");
+  if(!res.success){HH.toast(res.error,"error");return;}
+  allSellers=res.sellers||[];
+  renderSellers(allSellers);
+}
+
+function renderSellers(sellers){
+  if(!sellers.length){document.getElementById("sellersTbl").innerHTML=`<div class="empty-state"><div class="icon">🏪</div><p>No sellers yet.</p><button onclick="openSellerModal()" class="btn btn-primary mt-16">Add First Seller</button></div>`;return;}
+  document.getElementById("sellersTbl").innerHTML=`<table><thead><tr><th>Seller ID</th><th>Name</th><th>Store</th><th>Email</th><th>Status</th><th>Joined</th></tr></thead><tbody>${sellers.map(s=>`<tr><td style="font-family:monospace;font-size:12px;color:var(--c-muted);">${HH.esc(s.seller_id)}</td><td style="font-weight:500;">${HH.esc(s.name)}</td><td>${HH.esc(s.store_name||"—")}</td><td style="font-size:13px;">${HH.esc(s.email||"—")}</td><td><span class="badge ${s.status==="Active"?"badge-green":"badge-red"}">${HH.esc(s.status||"Active")}</span></td><td style="font-size:12px;color:var(--c-muted);">${HH.timeAgo(s.created_at)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function openSellerModal(){document.getElementById("sellerForm").reset();document.getElementById("smErr").style.display="none";document.getElementById("sellerModal").style.display="flex";document.body.style.overflow="hidden";}
+function closeSM(){document.getElementById("sellerModal").style.display="none";document.body.style.overflow="";}
+
+document.getElementById("sellerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=document.getElementById("smBtn"),err=document.getElementById("smErr");
+  err.style.display="none";btn.disabled=true;btn.textContent="Adding...";
+  const res=await HH.get("addSeller",{name:document.getElementById("sName").value.trim(),store_name:document.getElementById("sStore").value.trim(),password:document.getElementById("sPw").value,email:document.getElementById("sEmail").value.trim(),whatsapp:document.getElementById("sWA").value.trim()});
+  btn.disabled=false;btn.textContent="Add Seller";
+  if(res.success){HH.toast("Seller added! ID: "+res.seller_id,"success");closeSM();loadSellers();}
+  else{err.textContent=res.error||"Failed";err.style.display="block";}
+});
+
+// ── ALL ORDERS ────────────────────────────────────────────────
+async function loadAllOrders(){
+  document.getElementById("allOrdersTbl").innerHTML=`<div class="flex-center" style="padding:50px;"><div class="spinner"></div></div>`;
+  const res=await HH.get("getAllOrders");
+  if(!res.success){HH.toast(res.error,"error");return;}
+  allOrders=res.orders||[];
+  filterAllOrders();
+}
+
+function filterAllOrders(){
+  const q=(document.getElementById("oSearch").value||"").toLowerCase();
+  const st=document.getElementById("oStatusF").value;
+  let f=allOrders;
+  if(st)f=f.filter(o=>o.status===st);
+  if(q)f=f.filter(o=>(o.buyer_name||"").toLowerCase().includes(q)||(o.product_title||"").toLowerCase().includes(q)||(o.order_id||"").toLowerCase().includes(q)||(o.amazon_order_id||"").toLowerCase().includes(q)||(o.agent_id||"").toLowerCase().includes(q));
+  if(!f.length){document.getElementById("allOrdersTbl").innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>No orders found.</p></div>`;return;}
+  document.getElementById("allOrdersTbl").innerHTML=`<table><thead><tr><th>Order ID</th><th>Buyer</th><th>Product</th><th>Agent</th><th>Cashback</th><th>Refund Via</th><th>Status</th><th>Time</th><th></th></tr></thead><tbody>${f.map(o=>{
+    const proofIcon=o.delivery_screenshot_url?"📦":"⏳";
+    return `<tr><td style="font-family:monospace;font-size:11px;color:var(--c-muted);">${HH.esc(o.order_id)}</td><td><div style="font-weight:500;">${HH.esc(o.buyer_name)}</div><div style="font-size:11px;color:var(--c-muted);">${HH.esc(o.buyer_whatsapp)}</div></td><td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${HH.esc(o.product_title)}</td><td style="font-size:12px;color:var(--c-primary);">${HH.esc(o.agent_id||"—")}</td><td style="color:var(--c-primary);font-weight:600;">${HH.fmt$(o.cashback_amount)}</td><td style="font-size:12px;">${o.payment_method?HH.esc(o.payment_method):"—"} ${proofIcon}</td><td>${HH.statusBadge(o.status)}</td><td style="font-size:12px;color:var(--c-muted);">${HH.timeAgo(o.submitted_at)}</td><td><button onclick="openOM('${HH.esc(o.order_id)}')" class="btn btn-ghost btn-sm">Update</button></td></tr>`;
+  }).join("")}</tbody></table>`;
+}
+
+// ── ORDER UPDATE MODAL ──────────────────────────────────────
+function openOM(orderId){
+  const o=allOrders.find(x=>x.order_id===orderId);if(!o)return;
+  currentOrderId=orderId;
+  document.getElementById("omStatus").value="";
+  document.getElementById("omNote").value=o.seller_notes||"";
+  document.getElementById("omProofUrl").value=o.cashback_proof_url||"";
+  document.getElementById("omErr").style.display="none";
+  document.getElementById("omProofStatus").textContent="";
+  const shots=[];
+  if(o.screenshot_url) shots.push(`<a href="${HH.esc(o.screenshot_url)}" target="_blank" class="btn btn-ghost btn-sm">📎 Order Screenshot</a>`);
+  if(o.delivery_screenshot_url) shots.push(`<a href="${HH.esc(o.delivery_screenshot_url)}" target="_blank" class="btn btn-ghost btn-sm">📦 Delivery Screenshot</a>`);
+  else shots.push(`<span style="font-size:12px;color:#ffab00;align-self:center;">⏳ Buyer hasn't uploaded delivery proof yet</span>`);
+  document.getElementById("omInfo").innerHTML=`<div style="background:rgba(124,106,255,.06);border:1px solid var(--c-border);border-radius:var(--r-md);padding:14px;font-size:14px;">
+    <div><strong>${HH.esc(o.buyer_name)}</strong> · ${HH.esc(o.buyer_whatsapp)}</div>
+    <div style="color:var(--c-muted);margin-top:4px;">${HH.esc(o.product_title)}</div>
+    <div style="margin-top:6px;">${HH.statusBadge(o.status)} &nbsp; <span style="color:var(--c-primary);font-weight:700;">${HH.fmt$(o.cashback_amount)}</span></div>
+    ${o.payment_method?`<div style="margin-top:8px;font-size:13px;color:var(--c-muted);">💳 Refund via <strong style="color:var(--c-text);">${HH.esc(o.payment_method)}</strong>: <span style="color:var(--c-text);font-family:monospace;">${HH.esc(o.payment_id||"")}</span></div>`:""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">${shots.join("")}</div>
+  </div>`;
+  document.getElementById("orderModal").style.display="flex";
+  document.body.style.overflow="hidden";
+}
+function closeOM(){document.getElementById("orderModal").style.display="none";document.body.style.overflow="";}
+
+async function omUploadProof(){
+  const file=document.getElementById("omProofFile").files[0];if(!file)return;
+  const s=document.getElementById("omProofStatus");s.textContent="Uploading...";
+  try{const url=await HH.uploadFile(file);document.getElementById("omProofUrl").value=url;s.textContent="✅ Uploaded";s.style.color="var(--c-accent)";}
+  catch(e){s.textContent="❌ "+e.message;s.style.color="#ff4757";}
+}
+
+async function omSave(){
+  const btn=document.getElementById("omSaveBtn"),err=document.getElementById("omErr");
+  err.style.display="none";
+  const status=document.getElementById("omStatus").value;
+  const seller_notes=document.getElementById("omNote").value.trim();
+  const cashback_proof_url=document.getElementById("omProofUrl").value.trim();
+  if(!status&&!seller_notes&&!cashback_proof_url){err.textContent="Make at least one change.";err.style.display="block";return;}
+  btn.disabled=true;btn.textContent="Saving...";
+  const params={order_id:currentOrderId,actor_id:"admin",actor_type:"admin"};
+  if(status)params.status=status;
+  if(seller_notes)params.seller_notes=seller_notes;
+  if(cashback_proof_url)params.cashback_proof_url=cashback_proof_url;
+  const res=await HH.get("updateOrderStatus",params);
+  btn.disabled=false;btn.textContent="Save Changes";
+  if(res.success){HH.toast("Order updated!","success");closeOM();await loadAllOrders();}
+  else{err.textContent=res.error||"Update failed.";err.style.display="block";}
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function copyText(t){navigator.clipboard.writeText(t).then(()=>HH.toast("Copied!","success"));}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closePM();closeAM();closeSM();closeOM();}});
+function logout(){HH.clearSession("admin");location.href="login.html";}
+</script>
+</body>
+</html>
